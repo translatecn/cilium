@@ -46,7 +46,6 @@ var _ = Describe("K8sUpdates", func() {
 
 		cleanupCallback = func() {}
 	)
-
 	BeforeAll(func() {
 		canRun, err := helpers.CanRunK8sVersion(helpers.CiliumStableVersion, helpers.GetCurrentK8SEnv())
 		ExpectWithOffset(1, err).To(BeNil(), "Unable to get k8s constraints for %s", helpers.CiliumStableVersion)
@@ -84,9 +83,9 @@ var _ = Describe("K8sUpdates", func() {
 		stableChartPath = filepath.Join(versionPath, fmt.Sprintf("cilium-%s/install/kubernetes/cilium", helpers.CiliumStableHelmChartVersion))
 
 		cmd := kubectl.ExecMiddle(fmt.Sprintf("mkdir -p %s && "+
-			"cd %s &&"+
-			"wget https://github.com/cilium/cilium/archive/refs/heads/%s.zip &&"+
-			"unzip %s.zip",
+			"cd %s && "+
+			"wget https://github.com/cilium/cilium/archive/refs/heads/%s.tar.gz && "+
+			"tar -xf %s.tar.gz",
 			versionPath,
 			versionPath,
 			helpers.CiliumStableVersion,
