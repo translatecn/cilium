@@ -1054,7 +1054,7 @@ func (kub *Kubectl) GetPodNamesContext(ctx context.Context, namespace string, la
 
 	out := strings.Trim(stdout.String(), "\n")
 	if len(out) == 0 {
-		//Small hack. String split always return an array with an empty string
+		// Small hack. String split always return an array with an empty string
 		return []string{}, nil
 	}
 	return strings.Split(out, " "), nil
@@ -3581,7 +3581,7 @@ func (kub *Kubectl) DumpCiliumCommandOutput(ctx context.Context, namespace strin
 					"Cannot untar bugtool output: %s", res.CombineOutput())
 				continue
 			}
-			//Remove bugtool artifact, so it'll be not used if any other fail test
+			// Remove bugtool artifact, so it'll be not used if any other fail test
 			_ = kub.ExecPodCmdBackground(ctx, namespace, pod, "cilium-agent", fmt.Sprintf("rm /tmp/%s", line))
 		}
 
@@ -3731,6 +3731,11 @@ func (kub *Kubectl) GetCiliumPodOnNode(label string) (string, error) {
 	}
 
 	return kub.getCiliumPodOnNodeByName(node)
+}
+
+// GetCiliumPodOnNodeByName returns the name of the Cilium pod that is running on node with the given name.
+func (kub *Kubectl) GetCiliumPodOnNodeByName(nodeName string) (string, error) {
+	return kub.getCiliumPodOnNodeByName(nodeName)
 }
 
 func (kub *Kubectl) validateCilium() error {
@@ -4643,7 +4648,7 @@ func hasIPAddress(output []string) (bool, string) {
 }
 
 func (kub *Kubectl) ensureKubectlVersion() error {
-	//check current kubectl version
+	// check current kubectl version
 	type Version struct {
 		ClientVersion struct {
 			Major string `json:"major"`
@@ -4669,7 +4674,7 @@ func (kub *Kubectl) ensureKubectlVersion() error {
 	})
 	versionstring := fmt.Sprintf("%s.%s", v.ClientVersion.Major, minor)
 	if versionstring == GetCurrentK8SEnv() {
-		//version available on host is matching current env
+		// version available on host is matching current env
 		return nil
 	}
 
