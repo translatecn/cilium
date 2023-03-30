@@ -101,9 +101,9 @@ spec:
   - name: cilium-builder
     image: quay.io/cilium/cilium-builder:aa024fc013f66d9f7ab6750ddd47612b3864a15d@sha256:4a460a185d341cb7867b309a7987f3eba4bb1de4b34c942240049fafe4387d69
     workingDir: /cilium
-    command: ["sleep"]
+    command: ["/bin/sh", "-c"]
     args:
-      - "1000h"
+      - "git config --global --add safe.directory /cilium; sleep 1000h"
     securityContext:
       privileged: true
     volumeMounts:
