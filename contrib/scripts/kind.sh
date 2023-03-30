@@ -81,6 +81,8 @@ workers() {
   done
 }
 
+echo "${kind_cmd}"
+
 # create a cluster with the local registry enabled in containerd
 cat <<EOF | ${kind_cmd} --config=-
 kind: Cluster
