@@ -405,9 +405,11 @@ jobs:
 #            focus: 'K8sKafkaPolicyTest'
 
           - name: '3-1'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+            kernel: '4.9.337-20230414.141709'
+            org: 'aanm'
             k8s-version: '1.23'
             focus: 'K8sBandwidthTest|K8sBGPTests|K8sBookInfoDemoTest'
+            kernel-parameters: 'systemd.unified_cgroup_hierarchy=0'
             current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
 
 #          - name: '3-2'
@@ -558,21 +560,40 @@ jobs:
 
       - name: Provision LVH VMs
         if: ${{ matrix.org == '' }}
-        uses: aanm/little-vm-helper@20abbaab14d5226c173ed4d9e152d7eb9a2c1a82 # v0.0.3
+        uses: aanm/little-vm-helper@ea6518baabe9f8330c236ff4b2e7dc42707f29c8 # v0.0.3
         with:
           test-name: datapath-conformance
           image-version: ${{ matrix.kernel }}
           host-mount: ./
           cpu: 4
           mem: 12G
+          lvh-version: latest
           dns-resolver: '1.1.1.1'
           install-dependencies: 'true'
           cmd: |
             git config --global --add safe.directory /host
 
       - name: Provision LVH VMs
-        if: ${{ matrix.org != '' }}
-        uses: aanm/little-vm-helper@20abbaab14d5226c173ed4d9e152d7eb9a2c1a82 # v0.0.3
+        if: ${{ matrix.org != '' && matrix.kernel-parameters != '' }}
+        uses: aanm/little-vm-helper@ea6518baabe9f8330c236ff4b2e7dc42707f29c8 # v0.0.3
+        with:
+          test-name: datapath-conformance
+          image-version: ${{ matrix.kernel }}
+          kernel: /_vmlinux/vmlinux-4.9.337
+          host-mount: ./
+          org: ${{ matrix.org }}
+          cpu: 4
+          mem: 12G
+          lvh-version: latest
+          dns-resolver: '1.1.1.1'
+          kernel-parameters: ${{ matrix.kernel-parameters }}
+          install-dependencies: 'true'
+          cmd: |
+            git config --global --add safe.directory /host
+
+      - name: Provision LVH VMs
+        if: ${{ matrix.org != '' && matrix.kernel-parameters == '' }}
+        uses: aanm/little-vm-helper@ea6518baabe9f8330c236ff4b2e7dc42707f29c8 # v0.0.3
         with:
           test-name: datapath-conformance
           image-version: ${{ matrix.kernel }}
@@ -580,6 +601,7 @@ jobs:
           org: ${{ matrix.org }}
           cpu: 4
           mem: 12G
+          lvh-version: latest
           dns-resolver: '1.1.1.1'
           install-dependencies: 'true'
           cmd: |
@@ -594,7 +616,7 @@ jobs:
           done
 
       - name: Install dependencies in little-vm-helper
-        uses: aanm/little-vm-helper@20abbaab14d5226c173ed4d9e152d7eb9a2c1a82 # v0.0.3
+        uses: aanm/little-vm-helper@ea6518baabe9f8330c236ff4b2e7dc42707f29c8 # v0.0.3
         with:
           provision: 'false'
           cmd: |
@@ -606,7 +628,7 @@ jobs:
 
       - name: Provision kind
         timeout-minutes: 5
-        uses: aanm/little-vm-helper@20abbaab14d5226c173ed4d9e152d7eb9a2c1a82 # v0.0.3
+        uses: aanm/little-vm-helper@ea6518baabe9f8330c236ff4b2e7dc42707f29c8 # v0.0.3
         with:
           provision: 'false'
           cmd: |
@@ -626,7 +648,7 @@ jobs:
 
       - name: Run tests
         timeout-minutes: 40
-        uses: aanm/little-vm-helper@20abbaab14d5226c173ed4d9e152d7eb9a2c1a82 # v0.0.3
+        uses: aanm/little-vm-helper@ea6518baabe9f8330c236ff4b2e7dc42707f29c8 # v0.0.3
         with:
           provision: 'false'
           cmd: |
@@ -684,7 +706,7 @@ jobs:
 
       - name: Fetch artifacts
         if: ${{ !success() }}
-        uses: aanm/little-vm-helper@20abbaab14d5226c173ed4d9e152d7eb9a2c1a82 # v0.0.3
+        uses: aanm/little-vm-helper@ea6518baabe9f8330c236ff4b2e7dc42707f29c8 # v0.0.3
         with:
           provision: 'false'
           cmd: |
