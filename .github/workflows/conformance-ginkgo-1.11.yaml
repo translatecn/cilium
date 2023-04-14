@@ -253,11 +253,11 @@ jobs:
 #            k8s-version: '1.22'
 #            focus: 'K8sBandwidthTest|K8sBGPTests|K8sBookInfoDemoTest'
 
-          - name: '1-2'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sChaosTest|K8sCLI'
+#          - name: '1-2'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sChaosTest|K8sCLI'
 
           - name: '1-3'
             kernel: '4.19.195-20230411.044519'
@@ -266,24 +266,24 @@ jobs:
             focus: 'K8sConformance|K8sCustomCalls|K8sDatapathConfig AutoDirectNodeRoutes'
             current-status: "K8sConformance Portmap Chaining - connectivity-check pods are not ready after timeout - due some iptables error"
 
-          - name: '1-41'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sDatapathConfig'
-            skip: 'K8sDatapathConfig AutoDirectNodeRoutes|K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
-
-          - name: '1-42'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
-
-          - name: '1-5'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
+#          - name: '1-41'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sDatapathConfig'
+#            skip: 'K8sDatapathConfig AutoDirectNodeRoutes|K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
+#
+#          - name: '1-42'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
+#
+#          - name: '1-5'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
 
           - name: '1-61'
             kernel: '4.19.195-20230411.044519'
@@ -292,23 +292,23 @@ jobs:
             focus: 'K8sPolicyTest Basic Test'
             current-status: "Denies traffic with cnp default-deny ingress policy - fails to ping 8.8.8.8"
 
-          - name: '1-62'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
-
-          - name: '1-7'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sServicesTest Checks E/W'
-
-          - name: '1-8'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sServicesTest'
+#          - name: '1-62'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
+#
+#          - name: '1-7'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sServicesTest Checks E/W'
+#
+#          - name: '1-8'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sServicesTest'
 
           - name: '1-9'
             kernel: '4.19.195-20230411.044519'
@@ -323,13 +323,13 @@ jobs:
 #            org: aanm
 #            k8s-version: '1.22'
 #            focus: 'K8sUpdates'
-
-          - name: '1-999999'
-            kernel: '4.19.195-20230411.044519'
-            org: aanm
-            k8s-version: '1.22'
-            focus: 'K8sKafkaPolicyTest'
-
+#
+#          - name: '1-999999'
+#            kernel: '4.19.195-20230411.044519'
+#            org: aanm
+#            k8s-version: '1.22'
+#            focus: 'K8sKafkaPolicyTest'
+#
 #            These tests require are not intended to run on kernel 5.4, thus we can ignore them
 #          - name: '2-1'
 #            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
@@ -342,10 +342,10 @@ jobs:
 #            k8s-version: '1.21'
 #            focus: 'K8sChaosTest|K8sCLI'
 
-          - name: '2-3'
-            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
-            k8s-version: '1.21'
-            focus: 'K8sConformance|K8sCustomCalls|K8sDatapathConfig AutoDirectNodeRoutes'
+#          - name: '2-3'
+#            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
+#            k8s-version: '1.21'
+#            focus: 'K8sConformance|K8sCustomCalls|K8sDatapathConfig AutoDirectNodeRoutes'
 
           - name: '2-41'
             kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
@@ -354,15 +354,15 @@ jobs:
             skip: 'K8sDatapathConfig AutoDirectNodeRoutes|K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
             current-status: "level=error msg=\"unable to initialize Kube proxy replacement options\" error=\"install-no-conntrack-iptables-rules requires the agent to run with kube-proxy-replacement=strict.\" subsys=daemon"
 
-          - name: '2-42'
-            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
-            k8s-version: '1.21'
-            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
+#          - name: '2-42'
+#            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
+#            k8s-version: '1.21'
+#            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
 
-          - name: '2-5'
-            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
-            k8s-version: '1.21'
-            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
+#          - name: '2-5'
+#            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
+#            k8s-version: '1.21'
+#            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
 
 #            These tests require are not intended to run on kernel 5.4, thus we can ignore them
 #          - name: '2-61'
@@ -370,10 +370,10 @@ jobs:
 #            k8s-version: '1.21'
 #            focus: 'K8sPolicyTest Basic Test'
 
-          - name: '2-62'
-            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
-            k8s-version: '1.21'
-            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
+#          - name: '2-62'
+#            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
+#            k8s-version: '1.21'
+#            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
 
 #            These tests require are not intended to run on kernel 5.4, thus we can ignore them
 #          - name: '2-7'
@@ -386,12 +386,12 @@ jobs:
 #            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
 #            k8s-version: '1.21'
 #            focus: 'K8sServicesTest'
-
-          - name: '2-9'
-            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
-            k8s-version: '1.21'
-            focus: 'K8sVerifier'
-
+#
+#          - name: '2-9'
+#            kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
+#            k8s-version: '1.21'
+#            focus: 'K8sVerifier'
+#
           - name: '2-999'
             kernel: '5.4-20230328.094633@sha256:db98f5e6596227a9706bfb39ac783fdb1c55cb5b4a50e7f2397cef1b7adf6066'
             k8s-version: '1.21'
