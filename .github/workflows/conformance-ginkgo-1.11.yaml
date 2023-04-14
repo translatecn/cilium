@@ -174,78 +174,78 @@ jobs:
             focus: 'K8sBandwidthTest|K8sBGPTests|K8sBookInfoDemoTest'
             current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
 
-          - name: '0-2'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sChaosTest|K8sCLI'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-3'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sConformance|K8sCustomCalls|K8sDatapathConfig AutoDirectNodeRoutes'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-41'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sDatapathConfig'
-            skip: 'K8sDatapathConfig AutoDirectNodeRoutes|K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-42'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-5'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-61'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sPolicyTest Basic Test'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-62'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-7'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sServicesTest Checks E/W'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-8'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sServicesTest'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-9'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sVerifier'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-999'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sUpdates'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
-
-          - name: '0-999999'
-            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
-            k8s-version: '1.19'
-            focus: 'K8sKafkaPolicyTest'
-            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#          - name: '0-2'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sChaosTest|K8sCLI'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-3'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sConformance|K8sCustomCalls|K8sDatapathConfig AutoDirectNodeRoutes'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-41'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sDatapathConfig'
+#            skip: 'K8sDatapathConfig AutoDirectNodeRoutes|K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-42'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-5'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-61'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sPolicyTest Basic Test'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-62'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-7'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sServicesTest Checks E/W'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-8'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sServicesTest'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-9'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sVerifier'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-999'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sUpdates'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
+#
+#          - name: '0-999999'
+#            kernel: 'bpf-next-20230328.094633@sha256:b3354f22514f552a504ec2cfc1105d73cffe4bb8408705b511fd8444327590ca'
+#            k8s-version: '1.19'
+#            focus: 'K8sKafkaPolicyTest'
+#            current-status: "Kubernetes DNS is not ready yet: unable to resolve service name kubernetes.default.svc.cluster.local with DNS server 10.96.0.10 by running 'dig +short kubernetes.default.svc.cluster.local @10.96.0.10' Cilium pod: Exitcode: 9"
 
 #            These tests require are recent kernel version, so we can ignore them.
 #          - name: '1-1'
@@ -410,78 +410,78 @@ jobs:
             focus: 'K8sBandwidthTest|K8sBGPTests|K8sBookInfoDemoTest'
             current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
 
-          - name: '3-2'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sChaosTest|K8sCLI'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-3'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sConformance|K8sCustomCalls|K8sDatapathConfig AutoDirectNodeRoutes'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-41'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sDatapathConfig'
-            skip: 'K8sDatapathConfig AutoDirectNodeRoutes|K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-42'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-5'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-61'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sPolicyTest Basic Test'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-62'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-7'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sServicesTest Checks E/W'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-8'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sServicesTest'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-9'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sVerifier'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-999'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sUpdates'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
-
-          - name: '3-999999'
-            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
-            k8s-version: '1.23'
-            focus: 'K8sKafkaPolicyTest'
-            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#          - name: '3-2'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sChaosTest|K8sCLI'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-3'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sConformance|K8sCustomCalls|K8sDatapathConfig AutoDirectNodeRoutes'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-41'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sDatapathConfig'
+#            skip: 'K8sDatapathConfig AutoDirectNodeRoutes|K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-42'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sDatapathConfig MonitorAggregation|K8sDatapathConfig Sockops|K8sDatapathConfig Transparent|K8sDatapathConfig Wireguard'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-5'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sEgressGatewayTest|K8sFQDNTest|K8sHealthTest|K8sHubbleTest|K8sIdentity|K8sIstioTest|K8sLRPTests|K8sNode'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-61'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sPolicyTest Basic Test'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-62'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sPolicyTest Clusterwide|K8sPolicyTestExtended|K8sPolicyTest External|K8sPolicyTest GuestBook|K8sPolicyTest Multi-node|K8sPolicyTest Namespaces'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-7'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sServicesTest Checks E/W'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-8'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sServicesTest'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-9'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sVerifier'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-999'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sUpdates'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
+#
+#          - name: '3-999999'
+#            kernel: '4.9-20221115.175129@sha256:10e620e9f8dbcaa2a9867fea88f017cbf87eaf3388253a9393876055136738e9'
+#            k8s-version: '1.23'
+#            focus: 'K8sKafkaPolicyTest'
+#            current-status: "docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error setting cgroup config for procHooks process: bpf_prog_query(BPF_CGROUP_DEVICE) failed: invalid argument: unknown."
 
     timeout-minutes: 60
     steps:
