@@ -333,6 +333,13 @@ Annotations:
   Egress rules in CiliumNetworkPolicy CRD. The old attribute name is no longer supported,
   please update your CiliumNetworkPolicy CRD accordingly. Also applicable values for this
   attribute are changed to ``disabled``, ``required`` and ``test-always-fail``.
+* A bug that prevented dual-stack clusters (clusters that use both IPv4
+  and IPv6 addresses) from referencing the total address space of each IP
+  family individually ("0.0.0.0/0" and "::/0") in network policies has been
+  fixed. If operators of dual-stack clusters need to roll back from 1.14 (for
+  example, because of a failed upgrade) existing connections to
+  endpoints external to the cluster may break, though any new connections will
+  work correctly. Upgrading to 1.14 does not cause this problem.
 
 Removed Options
 ~~~~~~~~~~~~~~~
