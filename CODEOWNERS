@@ -37,6 +37,9 @@
 #   Provide guidance around the best use of Cilium project continuous
 #   integration and testing infrastructure, including GitHub actions, VM
 #   helpers, testing frameworks, etc.
+# - @cilium/committers
+#   Committers have commit access to the project and govern who else can
+#   become a committer to the project.
 # - @cilium/contributing:
 #   Encourage practices that ensure an inclusive contributor community. Review
 #   tooling and scripts used by contributors.
