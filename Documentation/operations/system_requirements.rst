@@ -351,7 +351,8 @@ traffic by default.
 If you are using VXLAN overlay network mode, Cilium uses Linux's default VXLAN
 port 8472 over UDP, unless Linux has been configured otherwise. In this case,
 UDP 8472 must be open among all nodes to enable VXLAN overlay mode. The same
-applies to Geneve overlay network mode, except the port is UDP 6081.
+applies to Geneve overlay network mode, except the port is UDP 6081. If you are
+using WireGuard, you must allow UDP port 51871.
 
 If you are running in direct routing mode, your network must allow routing of
 pod IPs.
