@@ -49,7 +49,7 @@ func TestInjectLabels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, remaining, 0)
 	assert.Len(t, IPIdentityCache.ipToIdentityCache, 2)
-	assert.True(t, IPIdentityCache.ipToIdentityCache["10.0.0.4/32"].ID.HasLocalScope())
+	assert.True(t, IPIdentityCache.ipToIdentityCache["10.0.0.4/32"].ID.HasLocalCIDRScope())
 
 	// Upsert node labels to the kube-apiserver to validate that the CIDR ID is
 	// deallocated and the kube-apiserver reserved ID is associated with this
@@ -60,7 +60,7 @@ func TestInjectLabels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, remaining, 0)
 	assert.Len(t, IPIdentityCache.ipToIdentityCache, 2)
-	assert.False(t, IPIdentityCache.ipToIdentityCache["10.0.0.4/32"].ID.HasLocalScope())
+	assert.False(t, IPIdentityCache.ipToIdentityCache["10.0.0.4/32"].ID.HasLocalCIDRScope())
 
 	// Clean up.
 	IPIdentityCache.metadata.remove(inClusterPrefix, "node-uid", overrideIdentity(false), labels.LabelRemoteNode)
@@ -78,7 +78,7 @@ func TestInjectLabels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, remaining, 0)
 	assert.Len(t, IPIdentityCache.ipToIdentityCache, 2)
-	assert.False(t, IPIdentityCache.ipToIdentityCache["10.0.0.4/32"].ID.HasLocalScope())
+	assert.False(t, IPIdentityCache.ipToIdentityCache["10.0.0.4/32"].ID.HasLocalCIDRScope())
 	assert.Equal(t, identity.ReservedIdentityHealth, IPIdentityCache.ipToIdentityCache["10.0.0.4/32"].ID)
 
 	// Assert that an upsert for reserved:ingress label results in only the
@@ -89,7 +89,7 @@ func TestInjectLabels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, remaining, 0)
 	assert.Len(t, IPIdentityCache.ipToIdentityCache, 3)
-	assert.False(t, IPIdentityCache.ipToIdentityCache["10.0.0.5/32"].ID.HasLocalScope())
+	assert.False(t, IPIdentityCache.ipToIdentityCache["10.0.0.5/32"].ID.HasLocalCIDRScope())
 	assert.Equal(t, identity.ReservedIdentityIngress, IPIdentityCache.ipToIdentityCache["10.0.0.5/32"].ID)
 	// Clean up.
 	IPIdentityCache.metadata.remove(inClusterPrefix2, "node-uid", overrideIdentity(false), labels.LabelIngress)
@@ -107,13 +107,13 @@ func TestInjectLabels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, remaining, 0)
 	assert.Len(t, IPIdentityCache.ipToIdentityCache, 3)
-	assert.True(t, IPIdentityCache.ipToIdentityCache["100.4.16.32/32"].ID.HasLocalScope())
+	assert.True(t, IPIdentityCache.ipToIdentityCache["100.4.16.32/32"].ID.HasLocalCIDRScope())
 	IPIdentityCache.metadata.upsertLocked(aPrefix, source.CustomResource, "node-uid", labels.LabelRemoteNode)
 	remaining, err = IPIdentityCache.InjectLabels(ctx, []netip.Prefix{aPrefix})
 	assert.NoError(t, err)
 	assert.Len(t, remaining, 0)
 	assert.Len(t, IPIdentityCache.ipToIdentityCache, 3)
-	assert.False(t, IPIdentityCache.ipToIdentityCache["100.4.16.32/32"].ID.HasLocalScope())
+	assert.False(t, IPIdentityCache.ipToIdentityCache["100.4.16.32/32"].ID.HasLocalCIDRScope())
 
 	// Assert that an upsert for reserved:world label results in only the
 	// reserved world ID.
@@ -123,7 +123,7 @@ func TestInjectLabels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, remaining, 0)
 	assert.Len(t, IPIdentityCache.ipToIdentityCache, 4)
-	assert.False(t, IPIdentityCache.ipToIdentityCache["0.0.0.0/0"].ID.HasLocalScope())
+	assert.False(t, IPIdentityCache.ipToIdentityCache["0.0.0.0/0"].ID.HasLocalCIDRScope())
 	assert.Equal(t, identity.ReservedIdentityWorld, IPIdentityCache.ipToIdentityCache["0.0.0.0/0"].ID)
 }
 
@@ -315,7 +315,7 @@ func TestRemoveLabelsFromIPs(t *testing.T) {
 	assert.Len(t, remaining, 0)
 	id := IPIdentityCache.IdentityAllocator.LookupIdentityByID(
 		context.TODO(),
-		identity.LocalIdentityFlag, // we assume first local ID
+		identity.IdentityScopeLocalCIDR, // we assume first local ID
 	)
 	assert.NotNil(t, id)
 	assert.Equal(t, 1, id.ReferenceCount)
@@ -365,7 +365,7 @@ func TestOverrideIdentity(t *testing.T) {
 
 	id, ok := ipc.LookupByPrefix(worldPrefix.String())
 	assert.True(t, ok)
-	assert.True(t, id.ID.HasLocalScope())
+	assert.True(t, id.ID.HasLocalCIDRScope())
 	assert.False(t, id.ID.IsReservedIdentity())
 
 	// Force an identity override
@@ -387,7 +387,7 @@ func TestOverrideIdentity(t *testing.T) {
 
 	id, ok = ipc.LookupByPrefix(worldPrefix.String())
 	assert.True(t, ok)
-	assert.True(t, id.ID.HasLocalScope())
+	assert.True(t, id.ID.HasLocalCIDRScope())
 	assert.False(t, id.ID.IsReservedIdentity())
 	assert.Equal(t, fooID.ReferenceCount, 1)
 

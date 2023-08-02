@@ -207,7 +207,7 @@ func (e *MapStateEntry) getNets(identities Identities, ident uint32) []*net.IPNe
 		return e.cachedNets
 	}
 	// CIDR identities have a local scope, so we can skip the rest if id is not of local scope.
-	if !id.HasLocalScope() || identities == nil {
+	if !id.HasLocalCIDRScope() || identities == nil {
 		return nil
 	}
 	lbls := identities.GetLabelsLocked(id)
