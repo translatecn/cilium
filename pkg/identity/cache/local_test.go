@@ -15,20 +15,21 @@ import (
 
 func (s *IdentityCacheTestSuite) TestBumpNextNumericIdentity(c *C) {
 	minID, maxID := identity.NumericIdentity(1), identity.NumericIdentity(5)
-	cache := newLocalIdentityCache(minID, maxID, nil)
+	scope := identity.NumericIdentity(0x42_00_00_00)
+	cache := newLocalIdentityCache(scope, minID, maxID, nil)
 
 	for i := minID; i <= maxID; i++ {
-		c.Assert(cache.nextNumericIdentity, Equals, i)
+		c.Assert(cache.nextNumericIdentity, Equals, scope+i)
 		cache.bumpNextNumericIdentity()
 	}
 
 	// ID must have overflowed and must be back to minID
-	c.Assert(cache.nextNumericIdentity, Equals, minID)
+	c.Assert(cache.nextNumericIdentity, Equals, scope+minID)
 }
 
 func (s *IdentityCacheTestSuite) TestLocalIdentityCache(c *C) {
 	minID, maxID := identity.NumericIdentity(1), identity.NumericIdentity(5)
-	cache := newLocalIdentityCache(minID, maxID, nil)
+	cache := newLocalIdentityCache(0x11_00_00_00, minID, maxID, nil)
 
 	identities := map[identity.NumericIdentity]*identity.Identity{}
 
