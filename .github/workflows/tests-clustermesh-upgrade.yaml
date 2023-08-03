@@ -87,7 +87,7 @@ jobs:
       - name: Checkout context ref (trusted)
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          ref: ${{ inputs.context-ref || github.sha }}
+          # ref: ${{ inputs.context-ref || github.sha }}
           persist-credentials: false
 
       - name: Set Environment Variables
@@ -167,6 +167,8 @@ jobs:
 
       - name: Generate Kind configuration files
         run: |
+          apt update && apt install -y gettext-base
+
           K8S_VERSION=${{ env.k8s_version }} \
             PODCIDR=10.242.0.0/16,fd00:10:242::/48 \
             SVCCIDR=10.243.0.0/16,fd00:10:243::/112 \
@@ -235,19 +237,19 @@ jobs:
 
       # Warning: since this is a privileged workflow, subsequent workflow job
       # steps must take care not to execute untrusted code.
-      - name: Checkout pull request branch (NOT TRUSTED)
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          ref: ${{ steps.vars.outputs.sha }}
-          persist-credentials: false
+      # - name: Checkout pull request branch (NOT TRUSTED)
+      #   uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      #   with:
+      #     ref: ${{ steps.vars.outputs.sha }}
+      #     persist-credentials: false
 
-      - name: Wait for images to be available
-        timeout-minutes: 10
-        shell: bash
-        run: |
-          for image in cilium-ci operator-generic-ci hubble-relay-ci clustermesh-apiserver-ci kvstoremesh-ci ; do
-            until docker manifest inspect quay.io/${{ env.QUAY_ORGANIZATION_DEV }}/$image:${{ steps.vars.outputs.sha }} &> /dev/null; do sleep 45s; done
-          done
+      # - name: Wait for images to be available
+      #   timeout-minutes: 10
+      #   shell: bash
+      #   run: |
+      #     for image in cilium-ci operator-generic-ci hubble-relay-ci clustermesh-apiserver-ci kvstoremesh-ci ; do
+      #       until docker manifest inspect quay.io/${{ env.QUAY_ORGANIZATION_DEV }}/$image:${{ steps.vars.outputs.sha }} &> /dev/null; do sleep 45s; done
+      #     done
 
 
       - name: Install Cilium in cluster1 (${{ env.cilium_stable_version }})
