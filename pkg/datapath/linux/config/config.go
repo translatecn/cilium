@@ -330,6 +330,9 @@ func (h *HeaderfileWriter) WriteNodeConfig(w io.Writer, cfg *datapath.LocalNodeC
 
 	if option.Config.EnableIPv4EgressGateway {
 		cDefinesMap["ENABLE_EGRESS_GATEWAY"] = "1"
+		{ // TODO: if InstallEgressGatewayRoutes
+			// cDefinesMap["INSTALL_EGRESS_GATEWAY_ROUTES"] = "1"
+		}
 	}
 
 	if option.Config.EnableEndpointRoutes {
