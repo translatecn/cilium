@@ -81,7 +81,7 @@ func (f *MockIdentityAllocator) AllocateIdentity(_ context.Context, lbls labels.
 		id = f.currentID
 		f.currentID++
 	} else {
-		if _, ok := f.idToIdentity[int(oldNID)]; oldNID.HasLocalCIDRScope() && !ok {
+		if _, ok := f.idToIdentity[int(oldNID)]; !ok && oldNID.Scope() == identity.ScopeForLabels(lbls) {
 			id = int(oldNID)
 		} else {
 			for {

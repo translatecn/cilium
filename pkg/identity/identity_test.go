@@ -51,10 +51,6 @@ func (s *IdentityTestSuite) TestReservedID(c *C) {
 	c.Assert(i, Equals, NumericIdentity(3))
 	c.Assert(i.String(), Equals, "unmanaged")
 
-	i = GetReservedID("kube-apiserver")
-	c.Assert(i, Equals, NumericIdentity(7))
-	c.Assert(i.String(), Equals, "kube-apiserver")
-
 	c.Assert(GetReservedID("unknown"), Equals, IdentityUnknown)
 	unknown := NumericIdentity(700)
 	c.Assert(unknown.String(), Equals, "700")
@@ -82,13 +78,36 @@ func (s *IdentityTestSuite) TestRequiresGlobalIdentity(c *C) {
 }
 
 func (s *IdentityTestSuite) TestScopeForLabels(c *C) {
-	prefix := netip.MustParsePrefix("0.0.0.0/0")
-	c.Assert(ScopeForLabels(cidr.GetCIDRLabels(prefix)), Equals, IdentityScopeLocalCIDR)
+	tests := []struct {
+		lbls  labels.Labels
+		scope NumericIdentity
+	}{
+		{
+			lbls:  cidr.GetCIDRLabels(netip.MustParsePrefix("0.0.0.0/0")),
+			scope: IdentityScopeLocalCIDR,
+		},
+		{
+			lbls:  cidr.GetCIDRLabels(netip.MustParsePrefix("192.168.23.0/24")),
+			scope: IdentityScopeLocalCIDR,
+		},
+		{
+			lbls:  labels.NewLabelsFromModel([]string{"k8s:foo=bar"}),
+			scope: IdentityScopeGlobal,
+		},
+		{
+			lbls:  labels.NewLabelsFromModel([]string{"reserved:remote-node"}),
+			scope: IdentityScopeRemoteNode,
+		},
+		{
+			lbls:  labels.NewLabelsFromModel([]string{"reserved:remote-node", "reserved:kube-apiserver"}),
+			scope: IdentityScopeRemoteNode,
+		},
+	}
 
-	prefix = netip.MustParsePrefix("192.168.23.0/24")
-	c.Assert(ScopeForLabels(cidr.GetCIDRLabels(prefix)), Equals, IdentityScopeLocalCIDR)
-
-	c.Assert(ScopeForLabels(labels.NewLabelsFromModel([]string{"k8s:foo=bar"})), Equals, IdentityScopeGlobal)
+	for i, test := range tests {
+		scope := ScopeForLabels(test.lbls)
+		c.Assert(scope, Equals, test.scope, Commentf("%d / labels %s", i, test.lbls.String()))
+	}
 }
 
 func (s *IdentityTestSuite) TestNewIdentityFromLabelArray(c *C) {
@@ -158,10 +177,7 @@ func TestLookupReservedIdentityByLabels(t *testing.T) {
 		{
 			name: "remote-node",
 			args: labels.LabelRemoteNode,
-			want: &want{
-				id:     ReservedIdentityRemoteNode,
-				labels: labels.LabelRemoteNode,
-			},
+			want: nil,
 		},
 		{
 			name: "kube-apiserver",
@@ -169,13 +185,7 @@ func TestLookupReservedIdentityByLabels(t *testing.T) {
 				labels.LabelKubeAPIServer.String(): "",
 				labels.LabelRemoteNode.String():    "",
 			}, ""),
-			want: &want{
-				id: ReservedIdentityKubeAPIServer,
-				labels: labels.Map2Labels(map[string]string{
-					labels.LabelKubeAPIServer.String(): "",
-					labels.LabelRemoteNode.String():    "",
-				}, ""),
-			},
+			want: nil,
 		},
 		{
 			name: "kube-apiserver-and-host",
@@ -211,13 +221,7 @@ func TestLookupReservedIdentityByLabels(t *testing.T) {
 				labels.LabelKubeAPIServer.String(): "",
 				labels.LabelRemoteNode.String():    "",
 			}, ""),
-			want: &want{
-				id: ReservedIdentityKubeAPIServer,
-				labels: labels.Map2Labels(map[string]string{
-					labels.LabelKubeAPIServer.String(): "",
-					labels.LabelRemoteNode.String():    "",
-				}, ""),
-			},
+			want: nil,
 		},
 		{
 			name: "remote-node-and-kube-apiserver",
@@ -225,13 +229,7 @@ func TestLookupReservedIdentityByLabels(t *testing.T) {
 				labels.LabelRemoteNode.String():    "",
 				labels.LabelKubeAPIServer.String(): "",
 			}, ""),
-			want: &want{
-				id: ReservedIdentityKubeAPIServer,
-				labels: labels.Map2Labels(map[string]string{
-					labels.LabelRemoteNode.String():    "",
-					labels.LabelKubeAPIServer.String(): "",
-				}, ""),
-			},
+			want: nil,
 		},
 		{
 			name: "ingress",

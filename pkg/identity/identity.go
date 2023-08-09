@@ -190,6 +190,11 @@ func RequiresGlobalIdentity(lbls labels.Labels) bool {
 func ScopeForLabels(lbls labels.Labels) NumericIdentity {
 	scope := IdentityScopeGlobal
 
+	// If this is a remote node, return the remote node scope
+	if lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) {
+		return IdentityScopeRemoteNode
+	}
+
 	for _, label := range lbls {
 		switch label.Source {
 		case labels.LabelSourceCIDR, labels.LabelSourceReserved:
@@ -250,22 +255,12 @@ func LookupReservedIdentityByLabels(lbls labels.Labels) *Identity {
 		return nil
 	}
 
-	var nid NumericIdentity
-	if lbls.Has(labels.LabelHost[labels.IDNameHost]) {
-		nid = ReservedIdentityHost
-	} else if lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) {
-		nid = ReservedIdentityRemoteNode
-		if lbls.Has(labels.LabelKubeAPIServer[labels.IDNameKubeAPIServer]) {
-			// If there's a kube-apiserver label, then we know this is
-			// kube-apiserver reserved ID, so change it as such.
-			// Only traffic from non-kube-apiserver nodes should be
-			// considered as remote-node.
-			nid = ReservedIdentityKubeAPIServer
-		}
+	if lbls.Has(labels.LabelRemoteNode[labels.IDNameRemoteNode]) {
+		return nil
 	}
 
-	if nid != IdentityUnknown {
-		return NewIdentity(nid, lbls)
+	if lbls.Has(labels.LabelHost[labels.IDNameHost]) {
+		return NewIdentity(ReservedIdentityHost, lbls)
 	}
 
 	// We have handled all the cases where multiple labels can be present.
@@ -276,7 +271,7 @@ func LookupReservedIdentityByLabels(lbls labels.Labels) *Identity {
 		return nil
 	}
 
-	nid = GetReservedID(lbls.ToSlice()[0].Key)
+	nid := GetReservedID(lbls.ToSlice()[0].Key)
 	if nid != IdentityUnknown && !IsUserReservedIdentity(nid) {
 		return LookupReservedIdentity(nid)
 	}
