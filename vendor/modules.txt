@@ -1,5 +1,5 @@
-# github.com/AdaLogics/go-fuzz-headers v0.0.0-20230106234847-43070de90fa1
-## explicit; go 1.18
+# github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24
+## explicit; go 1.20
 github.com/AdaLogics/go-fuzz-headers
 # github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
 ## explicit
@@ -204,8 +204,8 @@ github.com/cilium/ebpf/rlimit
 # github.com/cilium/fake v0.5.0
 ## explicit; go 1.19
 github.com/cilium/fake
-# github.com/cilium/linters v0.0.0-20230808123256-d08e43b7cebd
-## explicit; go 1.19
+# github.com/cilium/linters v0.0.0-20230809122533-03db9367abe5
+## explicit; go 1.20
 github.com/cilium/linters
 github.com/cilium/linters/ioreadall
 github.com/cilium/linters/slowg
@@ -302,9 +302,6 @@ github.com/coreos/go-systemd/v22/journal
 # github.com/cpuguy83/go-md2man/v2 v2.0.2
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/cyphar/filepath-securejoin v0.2.3
-## explicit; go 1.13
-github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
@@ -921,7 +918,7 @@ github.com/stretchr/testify/require
 # github.com/subosito/gotenv v1.4.2
 ## explicit; go 1.18
 github.com/subosito/gotenv
-# github.com/tidwall/gjson v1.15.0
+# github.com/tidwall/gjson v1.16.0
 ## explicit; go 1.12
 github.com/tidwall/gjson
 # github.com/tidwall/match v1.1.1
@@ -1063,7 +1060,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
-# golang.org/x/exp v0.0.0-20230807204917-050eac23e9de
+# golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
