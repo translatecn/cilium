@@ -8,5 +8,6 @@ import (
 )
 
 func needsNodeInit(k k8s.Kind) bool {
-	return k == k8s.KindAKS || k == k8s.KindGKE
+	//return k == k8s.KindAKS || k == k8s.KindGKE
+	return false
 }

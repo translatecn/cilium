@@ -29,12 +29,8 @@ import (
 )
 
 const (
-	DatapathTunnel    = "tunnel"
-	DatapathNative    = "native"
-	DatapathAwsENI    = "aws-eni"
-	DatapathGKE       = "gke"
-	DatapathAzure     = "azure"
-	DatapathAKSBYOCNI = "aks-byocni"
+	DatapathTunnel = "tunnel"
+	DatapathNative = "native"
 )
 
 const (
@@ -155,20 +151,6 @@ func (p *Parameters) IsDryRun() bool {
 	return p.DryRun || p.DryRunHelmValues
 }
 
-func NewK8sInstaller(client k8sInstallerImplementation, p Parameters) (*K8sInstaller, error) {
-	chartVersion, helmChart, err := helm.ResolveHelmChartVersion(p.Version, p.HelmChartDirectory, p.HelmRepository)
-	if err != nil {
-		return nil, err
-	}
-
-	return &K8sInstaller{
-		client:       client,
-		params:       p,
-		chartVersion: chartVersion,
-		chart:        helmChart,
-	}, nil
-}
-
 func (k *K8sInstaller) Log(format string, a ...any) {
 	fmt.Fprintf(k.params.Writer, format+"\n", a...)
 }
@@ -196,62 +178,25 @@ func (k *K8sInstaller) listVersions() error {
 	return err
 }
 
-func (k *K8sInstaller) preinstall(ctx context.Context) error {
-	// TODO (ajs): Note that we have our own implementation of helm MergeValues at internal/helm/MergeValues, used
-	//  e.g. in hubble.go. Does using the upstream HelmOpts.MergeValues here create inconsistencies with which
-	//  parameters take precedence? Test and determine which we should use here for expected behavior.
-	// Get Helm values to check if ipv4NativeRoutingCIDR value is specified via a Helm flag.
-	helmValues, err := k.params.HelmOpts.MergeValues(getter.All(cli.New()))
+func NewK8sInstaller(client k8sInstallerImplementation, p Parameters) (*K8sInstaller, error) {
+	chartVersion, helmChart, err := helm.ResolveHelmChartVersion(p.Version, p.HelmChartDirectory, p.HelmRepository)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := k.autodetectAndValidate(ctx, helmValues); err != nil {
-		return err
-	}
-
-	switch k.flavor.Kind {
-	case k8s.KindGKE:
-		if k.params.IPv4NativeRoutingCIDR == "" && helmValues["ipv4NativeRoutingCIDR"] == nil {
-			cidr, err := k.gkeNativeRoutingCIDR(k.client.ContextName())
-			if err != nil {
-				k.Log("❌ Unable to auto-detect GKE native routing CIDR. Is \"gcloud\" installed?")
-				k.Log("ℹ️  You can set the native routing CIDR manually with --set ipv4NativeRoutingCIDR=x.x.x.x/x")
-				return err
-			}
-			k.params.IPv4NativeRoutingCIDR = cidr
-		}
-
-	case k8s.KindAKS:
-		if k.params.DatapathMode == DatapathAzure {
-			// The Azure Service Principal is only needed when using Azure IPAM
-			if err := k.azureSetupServicePrincipal(); err != nil {
-				return err
-			}
-		}
-	case k8s.KindEKS:
-		// setup chaining mode
-		if err := k.awsSetupChainingMode(ctx, helmValues); err != nil {
-			return err
-		}
-	}
-
-	// Set affinity to prevent Cilium from being scheduled on nodes labeled with
-	// "cilium.io/no-schedule=true"
-	if k.params.NodesWithoutCilium {
-		k.params.HelmOpts.StringValues = append(k.params.HelmOpts.StringValues, defaults.CiliumScheduleAffinity...)
-		k.params.HelmOpts.StringValues = append(k.params.HelmOpts.StringValues, defaults.CiliumOperatorScheduleAffinity...)
-		k.params.HelmOpts.StringValues = append(k.params.HelmOpts.StringValues, defaults.SpireAgentScheduleAffinity...)
-	}
-
-	return nil
+	return &K8sInstaller{
+		client:       client,
+		params:       p,
+		chartVersion: chartVersion,
+		chart:        helmChart,
+	}, nil
 }
 
 func (k *K8sInstaller) InstallWithHelm(ctx context.Context, k8sClient *k8s.Client) error {
 	if k.params.ListVersions {
 		return k.listVersions()
 	}
-	if err := k.preinstall(ctx); err != nil {
+	if err := k.preinstall(ctx); err != nil { // ✅
 		return err
 	}
 	vals, err := k.getHelmValues()
@@ -279,4 +224,29 @@ func (k *K8sInstaller) InstallWithHelm(ctx context.Context, k8sClient *k8s.Clien
 		fmt.Println(string(helmValues))
 	}
 	return err
+}
+
+func (k *K8sInstaller) preinstall(ctx context.Context) error {
+	// TODO (ajs): Note that we have our own implementation of helm MergeValues at internal/helm/MergeValues, used
+	//  e.g. in hubble.go. Does using the upstream HelmOpts.MergeValues here create inconsistencies with which
+	//  parameters take precedence? Test and determine which we should use here for expected behavior.
+	// Get Helm values to check if ipv4NativeRoutingCIDR value is specified via a Helm flag.
+	helmValues, err := k.params.HelmOpts.MergeValues(getter.All(cli.New()))
+	if err != nil {
+		return err
+	}
+
+	if err := k.autodetectAndValidate(ctx, helmValues); err != nil { // 设置 k8sapiserveraddr\k8sapiserverport
+		return err
+	}
+
+	// Set affinity to prevent Cilium from being scheduled on nodes labeled with
+	// "cilium.io/no-schedule=true"
+	if k.params.NodesWithoutCilium {
+		k.params.HelmOpts.StringValues = append(k.params.HelmOpts.StringValues, defaults.CiliumScheduleAffinity...)
+		k.params.HelmOpts.StringValues = append(k.params.HelmOpts.StringValues, defaults.CiliumOperatorScheduleAffinity...)
+		k.params.HelmOpts.StringValues = append(k.params.HelmOpts.StringValues, defaults.SpireAgentScheduleAffinity...)
+	}
+
+	return nil
 }

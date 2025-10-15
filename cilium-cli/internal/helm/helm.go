@@ -21,6 +21,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	helm "github.com/cilium/charts"
+	"github.com/cilium/cilium/pkg/versioncheck"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -32,7 +33,6 @@ import (
 	"helm.sh/helm/v3/pkg/strvals"
 
 	"github.com/cilium/cilium/cilium-cli/defaults"
-	"github.com/cilium/cilium/pkg/versioncheck"
 )
 
 var settings = cli.New()
@@ -52,88 +52,6 @@ func mergeMaps(a, b map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
-}
-
-func newChartFromEmbeddedFile(ciliumVersion semver.Version) (*chart.Chart, error) {
-	helmTgz, err := helm.HelmFS.ReadFile(fmt.Sprintf("cilium-%s.tgz", ciliumVersion))
-	if err != nil {
-		return nil, fmt.Errorf("cilium version not found: %w", err)
-	}
-
-	// Check chart dependencies to make sure all are present in /charts
-	return loader.LoadArchive(bytes.NewReader(helmTgz))
-}
-
-func newChartFromDirectory(directory string) (*chart.Chart, error) {
-	return loader.LoadDir(directory)
-}
-
-// newChartFromRemoteWithCache fetches the chart from remote repository, the chart file
-// is then stored in the local cache directory for future usage.
-func newChartFromRemoteWithCache(ciliumVersion semver.Version, repository string) (*chart.Chart, error) {
-	cacheDir, err := ciliumCacheDir()
-	if err != nil {
-		return nil, err
-	}
-
-	hashID := sha256.Sum256([]byte(repository))
-	file := path.Join(cacheDir, fmt.Sprintf("cilium-%s-%x.tgz", ciliumVersion, hashID[:defaults.HelmRepoIDLen]))
-	if _, err = os.Stat(file); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return nil, err
-		}
-
-		// Download the chart from remote repository
-		actionConfig := new(action.Configuration)
-		pull := action.NewPullWithOpts(action.WithConfig(actionConfig))
-		pull.Settings = settings
-		pull.Version = ciliumVersion.String()
-		pull.DestDir = cacheDir
-		chartRef := "cilium"
-		if registry.IsOCI(repository) {
-			// For OCI repositories, Pull action expects the full repository name as the
-			// chartRef argument, and RepoURL must be kept unspecified.
-			chartRef = repository
-			// OCI repos need RegistryClient for some reason. Set it here.
-			registryClient, err := registry.NewClient()
-			if err != nil {
-				return nil, err
-			}
-			actionConfig.RegistryClient = registryClient
-		} else {
-			pull.RepoURL = repository
-		}
-		if _, err = pull.Run(chartRef); err != nil {
-			return nil, err
-		}
-
-		downloadedFile := path.Join(cacheDir, fmt.Sprintf("cilium-%s.tgz", ciliumVersion))
-		if err := os.Rename(downloadedFile, file); err != nil {
-			return nil, fmt.Errorf("failed to rename downloaded chart: %w", err)
-		}
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	return loader.LoadArchive(f)
-}
-
-func ciliumCacheDir() (string, error) {
-	cacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-
-	res := path.Join(cacheDir, "cilium-cli")
-	err = os.MkdirAll(res, 0755)
-	if err != nil && !os.IsExist(err) {
-		return "", err
-	}
-
-	return res, nil
 }
 
 // MergeVals merges all values from flag options ('helmFlagOpts') and
@@ -207,68 +125,6 @@ func ListVersions() ([]semver.Version, error) {
 	return versions, nil
 }
 
-// GetDefaultVersionString returns the default Cilium version to install.
-func GetDefaultVersionString() string {
-	versions, err := ListVersions()
-	if err != nil {
-		// Can't do much if cilium-cli can't find Cilium versions. Time to panic.
-		panic(err)
-	}
-	// Start from the latest version
-	for i := len(versions) - 1; i >= 0; i-- {
-		// Skip pre-releases
-		if versions[i].Pre != nil {
-			continue
-		}
-		return fmt.Sprintf("v%s", versions[i].String())
-	}
-	panic("there is no Cilium version to install")
-}
-
-// ResolveHelmChartVersion resolves Helm chart version based on --version, --chart-directory, and --repository flags.
-func ResolveHelmChartVersion(versionFlag, chartDirectoryFlag, repository string) (semver.Version, *chart.Chart, error) {
-	// If repository is empty, set it to the default Helm repository ("https://helm.cilium.io") for backward compatibility.
-	if repository == "" {
-		repository = defaults.HelmRepository
-	}
-	if chartDirectoryFlag == "" {
-		// If --chart-directory flag is not specified, use the version specified with --version flag.
-		return resolveChartVersion(versionFlag, repository)
-	}
-
-	// Get the chart version from the local Helm chart specified with --chart-directory flag.
-	localChart, err := newChartFromDirectory(chartDirectoryFlag)
-	if err != nil {
-		return semver.Version{}, nil, fmt.Errorf("failed to load Helm chart directory %s: %w", chartDirectoryFlag, err)
-	}
-	return versioncheck.MustVersion(localChart.Metadata.Version), localChart, nil
-}
-
-func resolveChartVersion(versionFlag string, repository string) (semver.Version, *chart.Chart, error) {
-	version, err := semver.ParseTolerant(versionFlag)
-	if err != nil {
-		return semver.Version{}, nil, err
-	}
-
-	// If the repository is the default repository ("https://helm.cilium.io"), check embedded charts first.
-	if repository == defaults.HelmRepository {
-		helmChart, err := newChartFromEmbeddedFile(version)
-		if err == nil {
-			return version, helmChart, nil
-		}
-
-		if !errors.Is(err, fs.ErrNotExist) {
-			return semver.Version{}, nil, err
-		}
-	}
-
-	helmChart, err := newChartFromRemoteWithCache(version, repository)
-	if err != nil {
-		return semver.Version{}, nil, err
-	}
-	return version, helmChart, nil
-}
-
 // UpgradeParameters contains parameters for helm upgrade operation.
 type UpgradeParameters struct {
 	// Namespace in which the Helm release is installed.
@@ -328,4 +184,148 @@ func Upgrade(
 	helmClient.MaxHistory = params.MaxHistory
 
 	return helmClient.RunWithContext(ctx, params.Name, params.Chart, params.Values)
+}
+
+// ResolveHelmChartVersion resolves Helm chart version based on --version, --chart-directory, and --repository flags.
+func ResolveHelmChartVersion(versionFlag, chartDirectoryFlag, repository string) (semver.Version, *chart.Chart, error) {
+	// If repository is empty, set it to the default Helm repository ("https://helm.cilium.io") for backward compatibility.
+	if repository == "" {
+		repository = defaults.HelmRepository
+	}
+	if chartDirectoryFlag == "" {
+		// If --chart-directory flag is not specified, use the version specified with --version flag.
+		return resolveChartVersion(versionFlag, repository)
+	}
+
+	// Get the chart version from the local Helm chart specified with --chart-directory flag.
+	localChart, err := newChartFromDirectory(chartDirectoryFlag)
+	if err != nil {
+		return semver.Version{}, nil, fmt.Errorf("failed to load Helm chart directory %s: %w", chartDirectoryFlag, err)
+	}
+	return versioncheck.MustVersion(localChart.Metadata.Version), localChart, nil
+}
+
+func resolveChartVersion(versionFlag string, repository string) (semver.Version, *chart.Chart, error) {
+	version, err := semver.ParseTolerant(versionFlag)
+	if err != nil {
+		return semver.Version{}, nil, err
+	}
+
+	// If the repository is the default repository ("https://helm.cilium.io"), check embedded charts first.
+	if repository == defaults.HelmRepository {
+		helmChart, err := newChartFromEmbeddedFile(version)
+		if err == nil {
+			return version, helmChart, nil
+		}
+
+		if !errors.Is(err, fs.ErrNotExist) {
+			return semver.Version{}, nil, err
+		}
+	}
+
+	helmChart, err := newChartFromRemoteWithCache(version, repository)
+	if err != nil {
+		return semver.Version{}, nil, err
+	}
+	return version, helmChart, nil
+}
+
+func newChartFromEmbeddedFile(ciliumVersion semver.Version) (*chart.Chart, error) {
+	helmTgz, err := helm.HelmFS.ReadFile(fmt.Sprintf("cilium-%s.tgz", ciliumVersion))
+	if err != nil {
+		return nil, fmt.Errorf("cilium version not found: %w", err)
+	}
+
+	// Check chart dependencies to make sure all are present in /charts
+	return loader.LoadArchive(bytes.NewReader(helmTgz))
+}
+
+// newChartFromRemoteWithCache fetches the chart from remote repository, the chart file
+// is then stored in the local cache directory for future usage.
+func newChartFromRemoteWithCache(ciliumVersion semver.Version, repository string) (*chart.Chart, error) {
+	cacheDir, err := ciliumCacheDir()
+	if err != nil {
+		return nil, err
+	}
+
+	hashID := sha256.Sum256([]byte(repository))
+	file := path.Join(cacheDir, fmt.Sprintf("cilium-%s-%x.tgz", ciliumVersion, hashID[:defaults.HelmRepoIDLen]))
+	if _, err = os.Stat(file); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
+
+		// Download the chart from remote repository
+		actionConfig := new(action.Configuration)
+		pull := action.NewPullWithOpts(action.WithConfig(actionConfig))
+		pull.Settings = settings
+		pull.Version = ciliumVersion.String()
+		pull.DestDir = cacheDir
+		chartRef := "cilium"
+		if registry.IsOCI(repository) {
+			// For OCI repositories, Pull action expects the full repository name as the
+			// chartRef argument, and RepoURL must be kept unspecified.
+			chartRef = repository
+			// OCI repos need RegistryClient for some reason. Set it here.
+			registryClient, err := registry.NewClient()
+			if err != nil {
+				return nil, err
+			}
+			actionConfig.RegistryClient = registryClient
+		} else {
+			pull.RepoURL = repository
+		}
+		if _, err = pull.Run(chartRef); err != nil {
+			return nil, err
+		}
+
+		downloadedFile := path.Join(cacheDir, fmt.Sprintf("cilium-%s.tgz", ciliumVersion))
+		if err := os.Rename(downloadedFile, file); err != nil {
+			return nil, fmt.Errorf("failed to rename downloaded chart: %w", err)
+		}
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return loader.LoadArchive(f)
+}
+
+func newChartFromDirectory(directory string) (*chart.Chart, error) {
+	return loader.LoadDir(directory)
+}
+
+func ciliumCacheDir() (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+
+	res := path.Join(cacheDir, "cilium-cli")
+	err = os.MkdirAll(res, 0755)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
+	return res, nil
+}
+
+// GetDefaultVersionString returns the default Cilium version to install.
+func GetDefaultVersionString() string {
+	versions, err := ListVersions()
+	if err != nil {
+		// Can't do much if cilium-cli can't find Cilium versions. Time to panic.
+		panic(err)
+	}
+	// Start from the latest version
+	for i := len(versions) - 1; i >= 0; i-- {
+		// Skip pre-releases
+		if versions[i].Pre != nil {
+			continue
+		}
+		return fmt.Sprintf("v%s", versions[i].String())
+	}
+	panic("there is no Cilium version to install")
 }

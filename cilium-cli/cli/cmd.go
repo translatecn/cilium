@@ -104,12 +104,12 @@ Perform a connectivity test
 		newCmdConnectivity(hooks),
 		newCmdContext(),
 		newCmdEncrypt(),
-		newCmdHubble(),
+		newCmdHubble(), // ✅
 		newCmdMulticast(),
-		newCmdStatus(),
-		newCmdSysdump(hooks),
-		newCmdVersion(),
-		newCmdInstallWithHelm(),
+		newCmdStatus(),          // ✅
+		newCmdSysdump(hooks),    // ✅
+		newCmdVersion(),         // ✅
+		newCmdInstallWithHelm(), // ✅
 		newCmdUninstallWithHelm(),
 		newCmdUpgradeWithHelm(),
 		newCmdFeatures(),

@@ -25,7 +25,7 @@ import (
 
 	"github.com/cilium/cilium/api/v1/models"
 	"github.com/cilium/cilium/cilium-cli/defaults"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 	"github.com/cilium/cilium/pkg/bgpv1/api"
 	"github.com/cilium/cilium/pkg/bgpv1/types"
 )
@@ -42,7 +42,7 @@ const (
 
 // GetRoutes gets BGP routes from all/specific cilium agent pods.
 func (s *Status) GetRoutes(ctx context.Context, args []string) error {
-	silent := s.params.Output == status.OutputJSON // do not print out notes / warnings when the output is JSON
+	silent := s.params.Output == over_status.OutputJSON // do not print out notes / warnings when the output is JSON
 
 	args = defaultGetRoutesArgs(args, silent)
 	err := validateGetRoutesArgs(args)
@@ -150,7 +150,7 @@ func (s *Status) fetchRoutesFromPod(ctx context.Context, fetchCmd []string, pod 
 }
 
 func (s *Status) writeRoutes(res map[string][]*models.BgpRoute, printPeer bool) error {
-	if s.params.Output == status.OutputJSON {
+	if s.params.Output == over_status.OutputJSON {
 		jsonStatus, err := json.MarshalIndent(res, "", " ")
 		if err != nil {
 			return err

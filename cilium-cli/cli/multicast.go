@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cilium/cilium/cilium-cli/multicast"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 )
 
 func newCmdMulticast() *cobra.Command {
@@ -60,7 +60,7 @@ func newCmdMulticastListGroup() *cobra.Command {
 		},
 	}
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
-	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
+	cmd.Flags().StringVarP(&params.Output, "output", "o", over_status.OutputSummary, "Output format. One of: json, summary")
 	return cmd
 
 }
@@ -85,7 +85,7 @@ func newCmdMulticastListSubscriber() *cobra.Command {
 	cmd.Flags().StringVarP(&params.MulticastGroupIP, "group-ip", "g", "", "Multicast group IP address")
 	cmd.Flags().BoolVar(&params.All, "all", false, "Show all subscribers")
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
-	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
+	cmd.Flags().StringVarP(&params.Output, "output", "o", over_status.OutputSummary, "Output format. One of: json, summary")
 	return cmd
 
 }

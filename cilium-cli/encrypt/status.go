@@ -19,7 +19,7 @@ import (
 
 	"github.com/cilium/cilium/api/v1/models"
 	"github.com/cilium/cilium/cilium-cli/defaults"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 	"github.com/cilium/cilium/cilium-cli/utils/features"
 	"github.com/cilium/cilium/pkg/versioncheck"
 )
@@ -224,7 +224,7 @@ func ipsecExpectedKeyCount(ciliumVersion semver.Version, cm *corev1.ConfigMap, n
 
 func printPerNodeStatus(nodeMap map[string]models.EncryptionStatus, expectedKeyCount int, format string) error {
 	for node, st := range nodeMap {
-		if format == status.OutputJSON {
+		if format == over_status.OutputJSON {
 			var ns any = st
 			if st.Mode == "IPsec" {
 				ns = nodeStatus{
@@ -304,7 +304,7 @@ func getClusterStatus(nodeMap map[string]models.EncryptionStatus, expectedKeyCou
 }
 
 func printClusterStatus(cs clusterStatus, format string) error {
-	if format == status.OutputJSON {
+	if format == over_status.OutputJSON {
 		return printJSONStatus(cs)
 	}
 

@@ -36,7 +36,7 @@ import (
 	"github.com/cilium/cilium/cilium-cli/defaults"
 	"github.com/cilium/cilium/cilium-cli/internal/helm"
 	"github.com/cilium/cilium/cilium-cli/k8s"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 	"github.com/cilium/cilium/cilium-cli/utils/wait"
 	cmtypes "github.com/cilium/cilium/pkg/clustermesh/types"
 	cmk8s "github.com/cilium/cilium/pkg/k8s"
@@ -86,7 +86,7 @@ type k8sClusterMeshImplementation interface {
 
 type K8sClusterMesh struct {
 	client          k8sClusterMeshImplementation
-	statusCollector *status.K8sStatusCollector
+	statusCollector *over_status.K8sStatusCollector
 	flavor          k8s.Flavor
 	params          Parameters
 	clusterName     string
@@ -629,23 +629,23 @@ type ClusterStats struct {
 }
 
 type ConnectivityStatus struct {
-	GlobalServices StatisticalStatus        `json:"global_services,omitempty"`
-	Connected      StatisticalStatus        `json:"connected,omitempty"`
-	Clusters       map[string]*ClusterStats `json:"clusters,omitempty"`
-	Total          int64                    `json:"total,omitempty"`
-	NotReady       int64                    `json:"not_ready,omitempty"`
-	Errors         status.ErrorCountMapMap  `json:"errors,omitempty"`
+	GlobalServices StatisticalStatus            `json:"global_services,omitempty"`
+	Connected      StatisticalStatus            `json:"connected,omitempty"`
+	Clusters       map[string]*ClusterStats     `json:"clusters,omitempty"`
+	Total          int64                        `json:"total,omitempty"`
+	NotReady       int64                        `json:"not_ready,omitempty"`
+	Errors         over_status.ErrorCountMapMap `json:"errors,omitempty"`
 }
 
 func (c *ConnectivityStatus) addError(pod, cluster string, err error) {
 	m := c.Errors[pod]
 	if m == nil {
-		m = status.ErrorCountMap{}
+		m = over_status.ErrorCountMap{}
 		c.Errors[pod] = m
 	}
 
 	if m[cluster] == nil {
-		m[cluster] = &status.ErrorCount{}
+		m[cluster] = &over_status.ErrorCount{}
 	}
 
 	m[cluster].Errors = append(m[cluster].Errors, err)
@@ -681,7 +681,7 @@ func remoteClusterStatusToError(status *models.RemoteCluster) error {
 	}
 }
 
-func (c *ConnectivityStatus) parseAgentStatus(name string, expected []string, s *status.ClusterMeshAgentConnectivityStatus) {
+func (c *ConnectivityStatus) parseAgentStatus(name string, expected []string, s *over_status.ClusterMeshAgentConnectivityStatus) {
 	if c.GlobalServices.Min < 0 || c.GlobalServices.Min > s.GlobalServices {
 		c.GlobalServices.Min = s.GlobalServices
 	}
@@ -794,12 +794,12 @@ func (k *K8sClusterMesh) statusConnectivity(ctx context.Context, checkKVStoreMes
 }
 
 func (k *K8sClusterMesh) determineStatusConnectivity(ctx context.Context, secretName, selector string,
-	collector func(ctx context.Context, ciliumPod string) (*status.ClusterMeshAgentConnectivityStatus, error),
+	collector func(ctx context.Context, ciliumPod string) (*over_status.ClusterMeshAgentConnectivityStatus, error),
 ) (*ConnectivityStatus, error) {
 	stats := &ConnectivityStatus{
 		GlobalServices: StatisticalStatus{Min: -1},
 		Connected:      StatisticalStatus{Min: -1},
-		Errors:         status.ErrorCountMapMap{},
+		Errors:         over_status.ErrorCountMapMap{},
 		Clusters:       map[string]*ClusterStats{},
 	}
 
@@ -830,7 +830,7 @@ func (k *K8sClusterMesh) determineStatusConnectivity(ctx context.Context, secret
 	for _, pod := range pods.Items {
 		s, err := collector(ctx, pod.Name)
 		if err != nil {
-			if len(expected) == 0 && errors.Is(err, status.ErrClusterMeshStatusNotAvailable) {
+			if len(expected) == 0 && errors.Is(err, over_status.ErrClusterMeshStatusNotAvailable) {
 				continue
 			}
 			return nil, fmt.Errorf("unable to determine status of pod %q: %w", pod.Name, err)
@@ -853,7 +853,7 @@ func (k *K8sClusterMesh) Status(ctx context.Context) (*Status, error) {
 		return nil, err
 	}
 
-	collector, err := status.NewK8sStatusCollector(k.client, status.K8sStatusParameters{
+	collector, err := over_status.NewK8sStatusCollector(k.client, over_status.K8sStatusParameters{
 		Namespace: k.params.Namespace,
 	})
 	if err != nil {
@@ -901,7 +901,7 @@ func (k *K8sClusterMesh) Status(ctx context.Context) (*Status, error) {
 
 	s.Connectivity, s.KVStoreMesh.Status, err = k.statusConnectivity(ctx, s.KVStoreMesh.Enabled)
 
-	if k.params.Output == status.OutputJSON {
+	if k.params.Output == over_status.OutputJSON {
 		jsonStatus, err := json.MarshalIndent(s, "", " ")
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal status to JSON")
@@ -985,7 +985,7 @@ func (k *K8sClusterMesh) outputConnectivityStatus(agents, kvstoremesh *Connectiv
 	if errCount > 0 {
 		k.Log("❌ %d Errors:", errCount)
 
-		outputErrors := func(errs status.ErrorCountMapMap, container, cmd string, likelyKVStoreMesh bool) {
+		outputErrors := func(errs over_status.ErrorCountMapMap, container, cmd string, likelyKVStoreMesh bool) {
 			for _, podName := range slices.Sorted(maps.Keys(errs)) {
 				clusters := errs[podName]
 				for clusterName, a := range clusters {
@@ -1027,38 +1027,6 @@ func generateEnableHelmValues(params Parameters, flavor k8s.Flavor) (map[string]
 
 	if params.ServiceType == "" {
 		switch flavor.Kind {
-		case k8s.KindGKE:
-			log("🔮 Auto-exposing service within GCP VPC (networking.gke.io/load-balancer-type=Internal)")
-			helmVals["clustermesh"].(map[string]any)["apiserver"] = map[string]any{
-				"service": map[string]any{
-					"type": corev1.ServiceTypeLoadBalancer,
-					"annotations": map[string]any{
-						"networking.gke.io/load-balancer-type": "Internal",
-						// Allows cross-region access
-						"networking.gke.io/internal-load-balancer-allow-global-access": "true",
-					},
-				},
-			}
-		case k8s.KindAKS:
-			log("🔮 Auto-exposing service within Azure VPC (service.beta.kubernetes.io/azure-load-balancer-internal)")
-			helmVals["clustermesh"].(map[string]any)["apiserver"] = map[string]any{
-				"service": map[string]any{
-					"type": corev1.ServiceTypeLoadBalancer,
-					"annotations": map[string]any{
-						"service.beta.kubernetes.io/azure-load-balancer-internal": "true",
-					},
-				},
-			}
-		case k8s.KindEKS:
-			log("🔮 Auto-exposing service within AWS VPC (service.beta.kubernetes.io/aws-load-balancer-scheme: internal")
-			helmVals["clustermesh"].(map[string]any)["apiserver"] = map[string]any{
-				"service": map[string]any{
-					"type": corev1.ServiceTypeLoadBalancer,
-					"annotations": map[string]any{
-						"service.beta.kubernetes.io/aws-load-balancer-scheme": "internal",
-					},
-				},
-			}
 		default:
 			return nil, fmt.Errorf("cannot auto-detect service type, please specify using '--service-type' option")
 		}
@@ -1873,7 +1841,7 @@ func outputDiffMap(name string, netpolDiffMap map[string]bool) {
 }
 
 func (res *PolicyDefaultLocalClusterInspectResult) OutputPolicyDefaultLocalClusterInspect(output string) error {
-	if output == status.OutputJSON {
+	if output == over_status.OutputJSON {
 		jsonStatus, err := json.MarshalIndent(res, "", " ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal status to JSON")

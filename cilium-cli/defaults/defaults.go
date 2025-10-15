@@ -111,30 +111,6 @@ var (
 	HelmRepositoryID = sha256.Sum256([]byte(HelmRepository))
 	HelmMaxHistory   = 10
 
-	// CiliumScheduleAffinity is the node affinity to prevent Cilium from being schedule on
-	// nodes labeled with CiliumNoScheduleLabel.
-	CiliumScheduleAffinity = []string{
-		"affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=" + CiliumNoScheduleLabel,
-		"affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=NotIn",
-		"affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]=true",
-	}
-
-	// CiliumOperatorScheduleAffinity is the node affinity to prevent Cilium from being schedule on
-	// nodes labeled with CiliumNoScheduleLabel.
-	CiliumOperatorScheduleAffinity = []string{
-		"operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=" + CiliumNoScheduleLabel,
-		"operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=NotIn",
-		"operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]=true",
-	}
-
-	// SpireAgentScheduleAffinity is the node affinity to prevent the SPIRE agent from being scheduled on
-	// nodes labeled with CiliumNoScheduleLabel.
-	SpireAgentScheduleAffinity = []string{
-		"authentication.mutual.spire.install.agent.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=" + CiliumNoScheduleLabel,
-		"authentication.mutual.spire.install.agent.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=NotIn",
-		"authentication.mutual.spire.install.agent.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]=true",
-	}
-
 	ExpectedDropReasons = []string{
 		"Policy denied",
 		"Policy denied by denylist",
@@ -194,4 +170,28 @@ var (
 
 	// CLIVersion is the software version of the Cilium CLI.
 	CLIVersion string
+
+	// CiliumScheduleAffinity is the node affinity to prevent Cilium from being schedule on
+	// nodes labeled with CiliumNoScheduleLabel.
+	CiliumScheduleAffinity = []string{
+		"affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=" + CiliumNoScheduleLabel,
+		"affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=NotIn",
+		"affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]=true",
+	}
+
+	// CiliumOperatorScheduleAffinity is the node affinity to prevent Cilium from being schedule on
+	// nodes labeled with CiliumNoScheduleLabel.
+	CiliumOperatorScheduleAffinity = []string{
+		"operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=" + CiliumNoScheduleLabel,
+		"operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=NotIn",
+		"operator.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]=true",
+	}
+
+	// SpireAgentScheduleAffinity is the node affinity to prevent the SPIRE agent from being scheduled on
+	// nodes labeled with CiliumNoScheduleLabel.
+	SpireAgentScheduleAffinity = []string{
+		"authentication.mutual.spire.install.agent.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=" + CiliumNoScheduleLabel,
+		"authentication.mutual.spire.install.agent.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=NotIn",
+		"authentication.mutual.spire.install.agent.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0]=true",
+	}
 )

@@ -22,7 +22,7 @@ import (
 
 	"github.com/cilium/cilium/api/v1/models"
 	"github.com/cilium/cilium/cilium-cli/defaults"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 	"github.com/cilium/cilium/pkg/bgpv1/api"
 )
 
@@ -123,7 +123,7 @@ func (s *Status) fetchPeeringStateFromPod(ctx context.Context, pod *corev1.Pod) 
 }
 
 func (s *Status) writeStatus(res map[string][]*models.BgpPeer) error {
-	if s.params.Output == status.OutputJSON {
+	if s.params.Output == over_status.OutputJSON {
 		jsonStatus, err := json.MarshalIndent(res, "", " ")
 		if err != nil {
 			return err

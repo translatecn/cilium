@@ -11,7 +11,7 @@ import (
 
 	"github.com/cilium/cilium/cilium-cli/bgp"
 	"github.com/cilium/cilium/cilium-cli/defaults"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 )
 
 func newCmdBgp() *cobra.Command {
@@ -51,7 +51,7 @@ func newCmdBgpPeers() *cobra.Command {
 	cmd.Flags().StringVar(&params.AgentPodSelector, "agent-pod-selector", defaults.AgentPodSelector, "Label on cilium-agent pods to select with")
 	cmd.Flags().StringVar(&params.NodeName, "node", "", "Node from which BGP status will be fetched, omit to select all nodes")
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
-	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
+	cmd.Flags().StringVarP(&params.Output, "output", "o", over_status.OutputSummary, "Output format. One of: json, summary")
 	cmd.Flags().BoolVarP(&params.ShowCaps, "capabilities", "c", false, "Show all BGP peer capabilities in detail")
 	return cmd
 }
@@ -88,7 +88,7 @@ func newCmdBgpRoutes() *cobra.Command {
 	cmd.Flags().StringVar(&params.AgentPodSelector, "agent-pod-selector", defaults.AgentPodSelector, "Label on cilium-agent pods to select with")
 	cmd.Flags().StringVar(&params.NodeName, "node", "", "Node from which BGP routes will be fetched, omit to select all nodes")
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
-	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
+	cmd.Flags().StringVarP(&params.Output, "output", "o", over_status.OutputSummary, "Output format. One of: json, summary")
 
 	return cmd
 }

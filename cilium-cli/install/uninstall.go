@@ -132,19 +132,6 @@ func (k *K8sUninstaller) UninstallWithHelm(ctx context.Context, actionConfig *ac
 	if err := k.cleanupNodeAnnotations(ctx); err != nil {
 		k.Log("Failed to clean up node annotations: %v", err)
 	}
-	// If aws-node daemonset exists, remove io.cilium/aws-node-enabled node selector.
-	if _, err := k.client.GetDaemonSet(ctx, AwsNodeDaemonSetNamespace, AwsNodeDaemonSetName, metav1.GetOptions{}); err != nil {
-		return nil
-	}
-	return k.undoAwsNodeNodeSelector(ctx)
-}
 
-func (k *K8sUninstaller) undoAwsNodeNodeSelector(ctx context.Context) error {
-	bytes := fmt.Appendf(nil, `[{"op":"remove","path":"/spec/template/spec/nodeSelector/%s"}]`, strings.ReplaceAll(AwsNodeDaemonSetNodeSelectorKey, "/", "~1"))
-	k.Log("⏪ Undoing the changes to the %q DaemonSet...", AwsNodeDaemonSetName)
-	_, err := k.client.PatchDaemonSet(ctx, AwsNodeDaemonSetNamespace, AwsNodeDaemonSetName, types.JSONPatchType, bytes, metav1.PatchOptions{})
-	if err != nil {
-		k.Log("❌ Failed to patch the %q DaemonSet, please remove it's node selector manually", AwsNodeDaemonSetName)
-	}
-	return err
+	return nil
 }

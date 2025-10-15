@@ -182,171 +182,6 @@ type Collector struct {
 	FeatureSet features.Set
 }
 
-// NewCollector returns a new sysdump collector.
-func NewCollector(
-	k KubernetesClient,
-	o Options,
-	hooks Hooks,
-	startTime time.Time,
-) (*Collector, error) {
-	c := &Collector{
-		Client:     k,
-		Options:    o,
-		startTime:  startTime,
-		FeatureSet: features.Set{},
-	}
-	tmp, err := os.MkdirTemp("", "*")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
-	}
-	c.sysdumpDir = filepath.Join(tmp, c.replaceTimestamp(c.Options.OutputFileName))
-	if err = os.MkdirAll(c.sysdumpDir, dirMode); err != nil {
-		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
-	}
-	if err = c.setupLogging(o.Writer); err != nil {
-		return nil, err
-	}
-	c.logDebug("Using %v as a temporary directory", c.sysdumpDir)
-	c.logTask("Collecting sysdump with cilium-cli version: %s, args: %s", defaults.CLIVersion, os.Args[1:])
-
-	if c.Options.CiliumNamespace == "" {
-		ns, err := detectCiliumNamespace(k)
-		if err == nil {
-			c.log("🔮 Detected Cilium installation in namespace: %q", ns)
-			c.Options.CiliumNamespace = ns
-		} else {
-			c.logWarn("Failed to detect Cilium installation")
-		}
-	} else {
-		c.log("ℹ️  Cilium namespace: %s", c.Options.CiliumNamespace)
-	}
-
-	if c.Options.CiliumOperatorNamespace == "" {
-		ns, err := detectCiliumOperatorNamespace(k)
-		if err == nil {
-			c.log("🔮 Detected Cilium operator in namespace: %q", ns)
-			c.Options.CiliumOperatorNamespace = ns
-		} else {
-			c.logWarn("Failed to detect Cilium operator")
-		}
-	} else {
-		c.log("ℹ️  Cilium operator namespace: %s", c.Options.CiliumOperatorNamespace)
-	}
-
-	if c.Options.CiliumHelmReleaseName == "" {
-		c.log("ℹ️ Using default Cilium Helm release name: %q", ciliumHelmReleaseName)
-		c.Options.CiliumHelmReleaseName = ciliumHelmReleaseName
-	} else {
-		c.log("ℹ️ Cilium Helm release name: %q", c.Options.CiliumHelmReleaseName)
-	}
-
-	if c.Options.TetragonHelmReleaseName == "" {
-		c.log("ℹ️ Using default Tetragon Helm release name: %q", tetragonHelmReleaseName)
-		c.Options.TetragonHelmReleaseName = tetragonHelmReleaseName
-	} else {
-		c.log("ℹ️ Tetragon Helm release name: %q", c.Options.TetragonHelmReleaseName)
-	}
-
-	if c.Options.CiliumSPIRENamespace == "" {
-		if ns, err := detectCiliumSPIRENamespace(k); err != nil {
-			c.logDebug("Failed to detect Cilium SPIRE installation: %v", err)
-			if c.Options.CiliumOperatorNamespace != "" {
-				c.log("ℹ️ Failed to detect Cilium SPIRE installation - using Cilium namespace as Cilium SPIRE namespace: %q", c.Options.CiliumOperatorNamespace)
-				c.Options.CiliumSPIRENamespace = c.Options.CiliumOperatorNamespace
-			}
-		} else {
-			c.log("🔮 Detected Cilium SPIRE installation in namespace: %q", ns)
-			c.Options.CiliumSPIRENamespace = ns
-		}
-	} else {
-		c.log("ℹ️  Cilium SPIRE namespace: %q", c.Options.CiliumSPIRENamespace)
-	}
-
-	// Grab the Kubernetes nodes for the target cluster.
-	c.logTask("Collecting Kubernetes nodes")
-	c.allNodes, err = c.Client.ListNodes(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect Kubernetes nodes: %w", err)
-	}
-	c.logDebug("Finished collecting Kubernetes nodes")
-
-	// Exit if there are no nodes, as there's nothing to do.
-	if len(c.allNodes.Items) == 0 {
-		return nil, fmt.Errorf("no nodes found in the current cluster")
-	}
-	// If there are many nodes and no filters are specified, issue a warning and wait for a while before proceeding so the user can cancel the process.
-	if len(c.allNodes.Items) > c.Options.LargeSysdumpThreshold && (c.Options.NodeList == DefaultNodeList && c.Options.LogsLimitBytes == DefaultLogsLimitBytes && c.Options.LogsSinceTime == DefaultLogsSinceTime) {
-		c.logWarn("Detected a large cluster (%d nodes, threshold is %d)", len(c.allNodes.Items), c.Options.LargeSysdumpThreshold)
-		c.logWarn("Consider using a node filter (--node-list option, default=\"\"),")
-		c.logWarn("a custom log size limit (--logs-limit-bytes option, default=1GiB)")
-		c.logWarn("and/or a custom log time range (--logs-since-time option, default=1y)")
-		c.logWarn("to decrease the size of the sysdump")
-		c.logWarn("Waiting for %s before continuing, press control+c to abort and adjust your options", c.Options.LargeSysdumpAbortTimeout)
-		t := time.NewTicker(c.Options.LargeSysdumpAbortTimeout)
-		defer t.Stop()
-		<-t.C
-	}
-
-	// Build the list of node names in which the user is interested.
-	c.NodeList = buildNodeNameList(c.allNodes, c.Options.NodeList)
-	c.logDebug("Restricting bugtool and logs collection to pods in %v", c.NodeList)
-
-	if c.Options.CiliumNamespace != "" {
-		ciliumPods, err := c.Client.ListPods(context.Background(), c.Options.CiliumNamespace, metav1.ListOptions{
-			LabelSelector: c.Options.CiliumLabelSelector,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get Cilium pods: %w", err)
-		}
-		c.CiliumPods = FilterPods(ciliumPods, c.NodeList)
-		if c.Options.CollectLogsFromNotReadyAgents {
-			crashedPods := filterCrashedPods(ciliumPods, 5)
-			notReady := filterRunningNotReadyPods(ciliumPods, 5)
-			restartedPods := filterRestartedContainersPods(ciliumPods, 5)
-			allPods := slices.Concat(crashedPods, notReady, restartedPods)
-
-			for _, pod := range allPods {
-				if !slices.ContainsFunc(c.CiliumNotReadyPods, func(p *corev1.Pod) bool {
-					return p.Name == pod.Name
-				}) {
-					c.CiliumNotReadyPods = append(c.CiliumNotReadyPods, pod)
-				}
-			}
-			if len(c.CiliumNotReadyPods) > 0 {
-				c.logWarn("Collecting additional logs from %d not ready/crashing/restarted Cilium agent pods", len(c.CiliumNotReadyPods))
-			}
-		}
-
-		c.CiliumConfigMap, err = c.Client.GetConfigMap(context.Background(), c.Options.CiliumNamespace, ciliumConfigMapName, metav1.GetOptions{})
-		if err != nil {
-			if !k8sErrors.IsNotFound(err) {
-				return nil, fmt.Errorf("failed to get %s ConfigMap: %w", ciliumConfigMapName, err)
-			}
-			c.log("ℹ️  %s ConfigMap not found in %s namespace", ciliumConfigMapName, c.Options.CiliumNamespace)
-		}
-		if c.CiliumConfigMap != nil {
-			c.FeatureSet.ExtractFromConfigMap(c.CiliumConfigMap)
-			c.log("🔮 Detected Cilium features: %v", c.FeatureSet)
-		}
-	}
-
-	if c.Options.CiliumOperatorNamespace != "" {
-		pods, err := c.Client.ListPods(context.Background(), c.Options.CiliumOperatorNamespace, metav1.ListOptions{
-			LabelSelector: c.Options.CiliumOperatorLabelSelector,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get Cilium operator pods: %w", err)
-		}
-		c.CiliumOperatorPods = AllPods(pods)
-	}
-
-	if err := hooks.AddSysdumpTasks(c); err != nil {
-		return nil, fmt.Errorf("failed to add custom sysdump tasks: %w", err)
-	}
-
-	return c, nil
-}
-
 // GatherResourceUnstructured queries resources with the given GroupVersionResource, storing them in the file specified by fname.
 // If keep is non-empty; then it will filter the items returned, keeping only those with names listed in keep.
 // If keep is empty, it will not filter the resources returned.
@@ -411,26 +246,6 @@ func (c *Collector) AbsoluteTempPath(f string) string {
 	return path.Join(c.sysdumpDir, c.replaceTimestamp(f))
 }
 
-func (c *Collector) WithFileSink(filename string, fn func(io.Writer) error) error {
-	path := c.AbsoluteTempPath(filename)
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fileMode)
-	if err != nil {
-		return err
-	}
-
-	return errors.Join(
-		fn(file),
-		file.Close(),
-	)
-}
-
-// WriteYAML writes a kubernetes object to a file as YAML.
-func (c *Collector) WriteYAML(filename string, o runtime.Object) error {
-	return c.WithFileSink(filename, func(w io.Writer) error {
-		return writeYAML(o, w)
-	})
-}
-
 // WriteString writes a string to a file.
 func (c *Collector) WriteString(filename string, value string) error {
 	return c.WithFileSink(filename, func(out io.Writer) error {
@@ -457,8 +272,7 @@ func (c *Collector) WriteEventTable(filename string, events []corev1.Event) erro
 func (c *Collector) Run() error {
 	// tasks is the list of base tasks to be run.
 	tasks := []Task{
-
-		{
+		{ // ✅
 			Description: "Collect Kubernetes nodes",
 			Quick:       true,
 			Task: func(_ context.Context) error {
@@ -468,7 +282,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collect Kubernetes version",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -482,7 +296,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes events",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -499,7 +313,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes namespaces",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -513,7 +327,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes pods",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -527,7 +341,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes pods summary",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -541,7 +355,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes services",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -555,7 +369,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes network policies",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -569,7 +383,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes endpoints",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -583,7 +397,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes endpointslices",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -597,7 +411,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes leases",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -612,7 +426,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting Kubernetes metrics",
 			Quick:       true,
 			Task: func(ctx context.Context) error {
@@ -626,7 +440,7 @@ func (c *Collector) Run() error {
 				return nil
 			},
 		},
-		{
+		{ // ✅
 			Description: "Collecting crashed test pod logs",
 			Quick:       false,
 			Task: func(ctx context.Context) error {
@@ -2199,10 +2013,6 @@ func (c *Collector) logWarn(msg string, args ...any) {
 	c.log("⚠️ "+msg, args...)
 }
 
-func (c *Collector) shouldSkipTask(t Task) bool {
-	return c.Options.Quick && !t.Quick
-}
-
 func (c *Collector) SubmitTetragonBugtoolTasks(pods []*corev1.Pod, tetragonAgentContainerName,
 	tetragonBugtoolPrefix, tetragonCLICommand string) error {
 	for _, p := range pods {
@@ -2779,43 +2589,6 @@ func (c *Collector) SubmitLogsTasks(pods []*corev1.Pod, since time.Duration, lim
 
 func (c *Collector) submitFlavorSpecificTasks(f k8s.Flavor) error {
 	switch f.Kind {
-	case k8s.KindEKS:
-		if err := c.Pool.Submit(awsNodeDaemonSetName, func(ctx context.Context) error {
-			// Collect the 'kube-system/aws-node' DaemonSet.
-			d, err := c.Client.GetDaemonSet(ctx, awsNodeDaemonSetNamespace, awsNodeDaemonSetName, metav1.GetOptions{})
-			if err != nil {
-				if k8sErrors.IsNotFound(err) {
-					c.logDebug("DaemonSet %q not found in namespace %q - this is expected when running in ENI mode", awsNodeDaemonSetName, awsNodeDaemonSetNamespace)
-					return nil
-				}
-				return fmt.Errorf("failed to collect daemonset %q in namespace %q: %w", awsNodeDaemonSetName, awsNodeDaemonSetNamespace, err)
-			}
-			if err := c.WriteYAML(awsNodeDaemonSetFileName, d); err != nil {
-				return fmt.Errorf("failed to collect daemonset %q in namespace %q: %w", awsNodeDaemonSetName, awsNodeDaemonSetNamespace, err)
-			}
-			// Only if the 'kube-system/aws-node' Daemonset is present...
-			// ... collect any "SecurityGroupPolicy" resources.
-			n := corev1.NamespaceAll
-			l, err := c.Client.ListUnstructured(ctx, awsSecurityGroupPoliciesGVR, &n, metav1.ListOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to collect security group policies: %w", err)
-			}
-			if err := c.WriteYAML(securityGroupPoliciesFileName, l); err != nil {
-				return fmt.Errorf("failed to collect security group policies: %w", err)
-			}
-			// ... collect any "ENIConfigs" resources.
-			l, err = c.Client.ListUnstructured(ctx, awsENIConfigsGVR, nil, metav1.ListOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to collect ENI configs: %w", err)
-			}
-			if err := c.WriteYAML(eniconfigsFileName, l); err != nil {
-				return fmt.Errorf("failed to collect ENI configs: %w", err)
-			}
-			return nil
-		}); err != nil {
-			return fmt.Errorf("failed to submit %q task: %w", awsNodeDaemonSetName, err)
-		}
-		return nil
 	default:
 		c.logDebug("No flavor-specific data to collect for %q", f.Kind.String())
 		return nil
@@ -3006,22 +2779,6 @@ func podIsRunningAndHasContainer(pod *corev1.Pod, container string) bool {
 	return false
 }
 
-func buildNodeNameList(nodes *corev1.NodeList, filter string) []string {
-	w := strings.Split(strings.TrimSpace(filter), ",")
-	r := make([]string, 0)
-	for _, node := range nodes.Items {
-		if len(w) == 0 || w[0] == "" {
-			r = append(r, node.Name)
-			continue
-		}
-		if isNodeInWhitelist(node, w) {
-			r = append(r, node.Name)
-			continue
-		}
-	}
-	return r
-}
-
 // AllPods converts a PodList into a slice of Pod objects.
 func AllPods(l *corev1.PodList) []*corev1.Pod {
 	return filterPods(l, func(*corev1.Pod) bool { return true }, 0)
@@ -3106,6 +2863,55 @@ func (c *Collector) AddTasks(tasks []Task) {
 	c.additionalTasks = append(c.additionalTasks, tasks...)
 }
 
+func InitSysdumpFlags(cmd *cobra.Command, options *Options, optionPrefix string, hooks Hooks) {
+	cmd.Flags().StringVar(&options.CiliumLabelSelector, optionPrefix+"cilium-label-selector", DefaultCiliumLabelSelector, "The labels used to target Cilium pods")
+	cmd.Flags().StringVar(&options.CiliumNamespace, optionPrefix+"cilium-namespace", "", "The namespace Cilium is running in. If not provided then the --namespace global flag is used (if provided)")
+	cmd.Flags().StringVar(&options.CiliumOperatorNamespace, optionPrefix+"cilium-operator-namespace", "", "The namespace Cilium operator is running in. If not provided then the --namespace global flag is used (if provided)")
+	cmd.Flags().StringVar(&options.CiliumSPIRENamespace, optionPrefix+"cilium-spire-namespace", "", "The namespace Cilium SPIRE installation is running in")
+	cmd.Flags().StringVar(&options.CiliumDaemonSetSelector, optionPrefix+"cilium-daemon-set-label-selector", DefaultCiliumLabelSelector, "The labels used to target Cilium daemon set")
+	cmd.Flags().StringVar(&options.CiliumEnvoyLabelSelector, optionPrefix+"cilium-envoy-label-selector", DefaultCiliumEnvoyLabelSelector, "The labels used to target Cilium Envoy pods")
+	cmd.Flags().StringVar(&options.CiliumHelmReleaseName, optionPrefix+"cilium-helm-release-name", "", "The Cilium Helm release name for which to get values. If not provided then the --helm-release-name global flag is used (if provided)")
+	cmd.Flags().StringVar(&options.TetragonHelmReleaseName, optionPrefix+"tetragon-helm-release-name", "", "The Tetragon Helm release name for which to get values.")
+	cmd.Flags().StringVar(&options.CiliumOperatorLabelSelector, optionPrefix+"cilium-operator-label-selector", DefaultCiliumOperatorLabelSelector, "The labels used to target Cilium operator pods")
+	cmd.Flags().StringVar(&options.ClustermeshApiserverLabelSelector, optionPrefix+"clustermesh-apiserver-label-selector", DefaultClustermeshApiserverLabelSelector, "The labels used to target 'clustermesh-apiserver' pods")
+	cmd.Flags().StringVar(&options.CiliumNodeInitLabelSelector, optionPrefix+"cilium-node-init-selector", DefaultCiliumNodeInitLabelSelector, "The labels used to target Cilium node init pods")
+	cmd.Flags().StringVar(&options.CiliumSPIREAgentLabelSelector, optionPrefix+"cilium-spire-agent-selector", DefaultCiliumSpireAgentLabelSelector, "The labels used to target Cilium spire-agent pods")
+	cmd.Flags().StringVar(&options.CiliumSPIREServerLabelSelector, optionPrefix+"cilium-spire-server-selector", DefaultCiliumSpireServerLabelSelector, "The labels used to target Cilium spire-server pods")
+	cmd.Flags().BoolVar(&options.CollectLogsFromNotReadyAgents, optionPrefix+"collect-logs-from-not-ready-agents", DefaultCollectLogsFromNotReadyAgents, "Whether to collect logs from not ready Cilium agent pods")
+	cmd.Flags().BoolVar(&options.Debug, optionPrefix+"debug", DefaultDebug, "Whether to enable debug logging")
+	cmd.Flags().BoolVar(&options.Profiling, optionPrefix+"profiling", DefaultProfiling, "Whether to enable scraping profiling data")
+	cmd.Flags().BoolVar(&options.Tracing, optionPrefix+"tracing", DefaultTracing, "Whether to enable scraping tracing data")
+	cmd.Flags().StringArrayVar(&options.ExtraLabelSelectors, optionPrefix+"extra-label-selectors", nil, "Optional set of labels selectors used to target additional pods for log collection.")
+	cmd.Flags().StringVar(&options.HubbleLabelSelector, optionPrefix+"hubble-label-selector", DefaultHubbleLabelSelector, "The labels used to target Hubble pods")
+	cmd.Flags().Int64Var(&options.HubbleFlowsCount, optionPrefix+"hubble-flows-count", DefaultHubbleFlowsCount, "Number of Hubble flows to collect. Setting to zero disables collecting Hubble flows.")
+	cmd.Flags().DurationVar(&options.HubbleFlowsTimeout, optionPrefix+"hubble-flows-timeout", DefaultHubbleFlowsTimeout, "Timeout for collecting Hubble flows")
+	cmd.Flags().StringVar(&options.HubbleRelayLabelSelector, optionPrefix+"hubble-relay-labels", DefaultHubbleRelayLabelSelector, "The labels used to target Hubble Relay pods")
+	cmd.Flags().StringVar(&options.HubbleUILabelSelector, optionPrefix+"hubble-ui-labels", DefaultHubbleUILabelSelector, "The labels used to target Hubble UI pods")
+	cmd.Flags().StringVar(&options.HubbleGenerateCertsLabelSelector, optionPrefix+"hubble-generate-certs-labels", DefaultHubbleGenerateCertsLabelSelector, "The labels used to target Hubble UI pods")
+	cmd.Flags().Int64Var(&options.LogsLimitBytes, optionPrefix+"logs-limit-bytes", DefaultLogsLimitBytes, "The limit on the number of bytes to retrieve when collecting logs")
+	cmd.Flags().DurationVar(&options.LogsSinceTime, optionPrefix+"logs-since-time", DefaultLogsSinceTime, "How far back in time to go when collecting logs")
+	cmd.Flags().StringVar(&options.NodeList, optionPrefix+"node-list", DefaultNodeList, "Comma-separated list of node IPs or names to filter pods for which to collect gops and logs")
+	cmd.Flags().StringVar(&options.OutputFileName, optionPrefix+"output-filename", DefaultOutputFileName, "The name of the resulting file (without extension)\n'<ts>' can be used as the placeholder for the timestamp")
+	cmd.Flags().BoolVar(&options.Quick, optionPrefix+"quick", DefaultQuick, "Whether to enable quick mode (i.e. skip collection of 'cilium-bugtool' output and logs)")
+	cmd.Flags().IntVar(&options.WorkerCount, optionPrefix+"worker-count", DefaultWorkerCount, "The number of workers to use\nNOTE: There is a lower bound requirement on the number of workers for the sysdump operation to be effective. Therefore, for low values, the actual number of workers may be adjusted upwards. Defaults to the number of available CPUs.")
+	cmd.Flags().StringArrayVar(&options.CiliumBugtoolFlags, optionPrefix+"cilium-bugtool-flags", nil, "Optional set of flags to pass to cilium-bugtool command.")
+	cmd.Flags().BoolVar(&options.DetectGopsPID, optionPrefix+"detect-gops-pid", false, "Whether to automatically detect the gops agent PID.")
+	cmd.Flags().StringVar(&options.CNIConfigDirectory, optionPrefix+"cni-config-directory", DefaultCNIConfigDirectory, "Directory where CNI configs are located")
+	cmd.Flags().StringVar(&options.CNIConfigMapName, optionPrefix+"cni-configmap-name", DefaultCNIConfigMapName, "The name of the CNI config map")
+	cmd.Flags().StringVar(&options.TetragonNamespace, optionPrefix+"tetragon-namespace", DefaultTetragonNamespace, "The namespace Tetragon is running in")
+	cmd.Flags().StringVar(&options.TetragonLabelSelector, optionPrefix+"tetragon-label-selector", DefaultTetragonLabelSelector, "The labels used to target Tetragon pods")
+	cmd.Flags().StringVar(&options.TetragonOperatorLabelSelector, optionPrefix+"tetragon-operator-label-selector", DefaultTetragonOperatorLabelSelector, "The labels used to target Tetragon operator pods")
+	cmd.Flags().IntVar(&options.CopyRetryLimit, optionPrefix+"copy-retry-limit", DefaultCopyRetryLimit, "Retry limit for file copying operations. If set to -1, copying will be retried indefinitely. Useful for collecting sysdump while on unreliable connection.")
+
+	hooks.AddSysdumpFlags(cmd.Flags())
+}
+
+// Hooks to extend cilium-cli with additional sysdump tasks and related flags.
+type Hooks interface {
+	AddSysdumpFlags(flags *pflag.FlagSet)
+	AddSysdumpTasks(*Collector) error
+}
+
 func detectCiliumNamespace(k KubernetesClient) (string, error) {
 	for _, ns := range DefaultCiliumNamespaces {
 		ctx := context.Background()
@@ -3175,127 +2981,205 @@ func detectCiliumSPIRENamespace(k KubernetesClient) (string, error) {
 	return "", fmt.Errorf("failed to detect Cilium SPIRE namespace, could not find Cilium SPIRE installation in namespaces: %v", DefaultCiliumSPIRENamespaces)
 }
 
-func InitSysdumpFlags(cmd *cobra.Command, options *Options, optionPrefix string, hooks Hooks) {
-	cmd.Flags().StringVar(&options.CiliumLabelSelector,
-		optionPrefix+"cilium-label-selector", DefaultCiliumLabelSelector,
-		"The labels used to target Cilium pods")
-	cmd.Flags().StringVar(&options.CiliumNamespace,
-		optionPrefix+"cilium-namespace", "",
-		"The namespace Cilium is running in. If not provided then the --namespace global flag is used (if provided)")
-	cmd.Flags().StringVar(&options.CiliumOperatorNamespace,
-		optionPrefix+"cilium-operator-namespace", "",
-		"The namespace Cilium operator is running in. If not provided then the --namespace global flag is used (if provided)")
-	cmd.Flags().StringVar(&options.CiliumSPIRENamespace,
-		optionPrefix+"cilium-spire-namespace", "",
-		"The namespace Cilium SPIRE installation is running in")
-	cmd.Flags().StringVar(&options.CiliumDaemonSetSelector,
-		optionPrefix+"cilium-daemon-set-label-selector", DefaultCiliumLabelSelector,
-		"The labels used to target Cilium daemon set")
-	cmd.Flags().StringVar(&options.CiliumEnvoyLabelSelector,
-		optionPrefix+"cilium-envoy-label-selector", DefaultCiliumEnvoyLabelSelector,
-		"The labels used to target Cilium Envoy pods")
-	cmd.Flags().StringVar(&options.CiliumHelmReleaseName,
-		optionPrefix+"cilium-helm-release-name", "",
-		"The Cilium Helm release name for which to get values. If not provided then the --helm-release-name global flag is used (if provided)")
-	cmd.Flags().StringVar(&options.TetragonHelmReleaseName,
-		optionPrefix+"tetragon-helm-release-name", "",
-		"The Tetragon Helm release name for which to get values.")
-	cmd.Flags().StringVar(&options.CiliumOperatorLabelSelector,
-		optionPrefix+"cilium-operator-label-selector", DefaultCiliumOperatorLabelSelector,
-		"The labels used to target Cilium operator pods")
-	cmd.Flags().StringVar(&options.ClustermeshApiserverLabelSelector,
-		optionPrefix+"clustermesh-apiserver-label-selector", DefaultClustermeshApiserverLabelSelector,
-		"The labels used to target 'clustermesh-apiserver' pods")
-	cmd.Flags().StringVar(&options.CiliumNodeInitLabelSelector,
-		optionPrefix+"cilium-node-init-selector", DefaultCiliumNodeInitLabelSelector,
-		"The labels used to target Cilium node init pods")
-	cmd.Flags().StringVar(&options.CiliumSPIREAgentLabelSelector,
-		optionPrefix+"cilium-spire-agent-selector", DefaultCiliumSpireAgentLabelSelector,
-		"The labels used to target Cilium spire-agent pods")
-	cmd.Flags().StringVar(&options.CiliumSPIREServerLabelSelector,
-		optionPrefix+"cilium-spire-server-selector", DefaultCiliumSpireServerLabelSelector,
-		"The labels used to target Cilium spire-server pods")
-	cmd.Flags().BoolVar(&options.CollectLogsFromNotReadyAgents,
-		optionPrefix+"collect-logs-from-not-ready-agents", DefaultCollectLogsFromNotReadyAgents,
-		"Whether to collect logs from not ready Cilium agent pods")
-	cmd.Flags().BoolVar(&options.Debug,
-		optionPrefix+"debug", DefaultDebug,
-		"Whether to enable debug logging")
-	cmd.Flags().BoolVar(&options.Profiling,
-		optionPrefix+"profiling", DefaultProfiling,
-		"Whether to enable scraping profiling data")
-	cmd.Flags().BoolVar(&options.Tracing,
-		optionPrefix+"tracing", DefaultTracing,
-		"Whether to enable scraping tracing data")
-	cmd.Flags().StringArrayVar(&options.ExtraLabelSelectors,
-		optionPrefix+"extra-label-selectors", nil,
-		"Optional set of labels selectors used to target additional pods for log collection.")
-	cmd.Flags().StringVar(&options.HubbleLabelSelector,
-		optionPrefix+"hubble-label-selector", DefaultHubbleLabelSelector,
-		"The labels used to target Hubble pods")
-	cmd.Flags().Int64Var(&options.HubbleFlowsCount,
-		optionPrefix+"hubble-flows-count", DefaultHubbleFlowsCount,
-		"Number of Hubble flows to collect. Setting to zero disables collecting Hubble flows.")
-	cmd.Flags().DurationVar(&options.HubbleFlowsTimeout,
-		optionPrefix+"hubble-flows-timeout", DefaultHubbleFlowsTimeout,
-		"Timeout for collecting Hubble flows")
-	cmd.Flags().StringVar(&options.HubbleRelayLabelSelector,
-		optionPrefix+"hubble-relay-labels", DefaultHubbleRelayLabelSelector,
-		"The labels used to target Hubble Relay pods")
-	cmd.Flags().StringVar(&options.HubbleUILabelSelector,
-		optionPrefix+"hubble-ui-labels", DefaultHubbleUILabelSelector,
-		"The labels used to target Hubble UI pods")
-	cmd.Flags().StringVar(&options.HubbleGenerateCertsLabelSelector,
-		optionPrefix+"hubble-generate-certs-labels", DefaultHubbleGenerateCertsLabelSelector,
-		"The labels used to target Hubble UI pods")
-	cmd.Flags().Int64Var(&options.LogsLimitBytes,
-		optionPrefix+"logs-limit-bytes", DefaultLogsLimitBytes,
-		"The limit on the number of bytes to retrieve when collecting logs")
-	cmd.Flags().DurationVar(&options.LogsSinceTime,
-		optionPrefix+"logs-since-time", DefaultLogsSinceTime,
-		"How far back in time to go when collecting logs")
-	cmd.Flags().StringVar(&options.NodeList,
-		optionPrefix+"node-list", DefaultNodeList,
-		"Comma-separated list of node IPs or names to filter pods for which to collect gops and logs")
-	cmd.Flags().StringVar(&options.OutputFileName,
-		optionPrefix+"output-filename", DefaultOutputFileName,
-		"The name of the resulting file (without extension)\n'<ts>' can be used as the placeholder for the timestamp")
-	cmd.Flags().BoolVar(&options.Quick,
-		optionPrefix+"quick", DefaultQuick,
-		"Whether to enable quick mode (i.e. skip collection of 'cilium-bugtool' output and logs)")
-	cmd.Flags().IntVar(&options.WorkerCount,
-		optionPrefix+"worker-count", DefaultWorkerCount,
-		"The number of workers to use\nNOTE: There is a lower bound requirement on the number of workers for the sysdump operation to be effective. Therefore, for low values, the actual number of workers may be adjusted upwards. Defaults to the number of available CPUs.")
-	cmd.Flags().StringArrayVar(&options.CiliumBugtoolFlags,
-		optionPrefix+"cilium-bugtool-flags", nil,
-		"Optional set of flags to pass to cilium-bugtool command.")
-	cmd.Flags().BoolVar(&options.DetectGopsPID,
-		optionPrefix+"detect-gops-pid", false,
-		"Whether to automatically detect the gops agent PID.")
-	cmd.Flags().StringVar(&options.CNIConfigDirectory,
-		optionPrefix+"cni-config-directory", DefaultCNIConfigDirectory,
-		"Directory where CNI configs are located")
-	cmd.Flags().StringVar(&options.CNIConfigMapName,
-		optionPrefix+"cni-configmap-name", DefaultCNIConfigMapName,
-		"The name of the CNI config map")
-	cmd.Flags().StringVar(&options.TetragonNamespace,
-		optionPrefix+"tetragon-namespace", DefaultTetragonNamespace,
-		"The namespace Tetragon is running in")
-	cmd.Flags().StringVar(&options.TetragonLabelSelector,
-		optionPrefix+"tetragon-label-selector", DefaultTetragonLabelSelector,
-		"The labels used to target Tetragon pods")
-	cmd.Flags().StringVar(&options.TetragonOperatorLabelSelector,
-		optionPrefix+"tetragon-operator-label-selector", DefaultTetragonOperatorLabelSelector,
-		"The labels used to target Tetragon operator pods")
-	cmd.Flags().IntVar(&options.CopyRetryLimit,
-		optionPrefix+"copy-retry-limit", DefaultCopyRetryLimit,
-		"Retry limit for file copying operations. If set to -1, copying will be retried indefinitely. Useful for collecting sysdump while on unreliable connection.")
-
-	hooks.AddSysdumpFlags(cmd.Flags())
+func buildNodeNameList(nodes *corev1.NodeList, filter string) []string {
+	w := strings.Split(strings.TrimSpace(filter), ",")
+	r := make([]string, 0)
+	for _, node := range nodes.Items {
+		if len(w) == 0 || w[0] == "" {
+			r = append(r, node.Name)
+			continue
+		}
+		if isNodeInWhitelist(node, w) {
+			r = append(r, node.Name)
+			continue
+		}
+	}
+	return r
 }
 
-// Hooks to extend cilium-cli with additional sysdump tasks and related flags.
-type Hooks interface {
-	AddSysdumpFlags(flags *pflag.FlagSet)
-	AddSysdumpTasks(*Collector) error
+// NewCollector returns a new sysdump collector.
+func NewCollector(k KubernetesClient, o Options, hooks Hooks, startTime time.Time) (*Collector, error) {
+	c := &Collector{
+		Client:     k,
+		Options:    o,
+		startTime:  startTime,
+		FeatureSet: features.Set{},
+	}
+	tmp, err := os.MkdirTemp("", "*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+	c.sysdumpDir = filepath.Join(tmp, c.replaceTimestamp(c.Options.OutputFileName))
+	if err = os.MkdirAll(c.sysdumpDir, dirMode); err != nil {
+		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+	if err = c.setupLogging(o.Writer); err != nil {
+		return nil, err
+	}
+	c.logDebug("Using %v as a temporary directory", c.sysdumpDir)
+	c.logTask("Collecting sysdump with cilium-cli version: %s, args: %s", defaults.CLIVersion, os.Args[1:])
+
+	if c.Options.CiliumNamespace == "" {
+		ns, err := detectCiliumNamespace(k)
+		if err == nil {
+			c.log("🔮 Detected Cilium installation in namespace: %q", ns)
+			c.Options.CiliumNamespace = ns
+		} else {
+			c.logWarn("Failed to detect Cilium installation")
+		}
+	} else {
+		c.log("ℹ️  Cilium namespace: %s", c.Options.CiliumNamespace)
+	}
+
+	if c.Options.CiliumOperatorNamespace == "" {
+		ns, err := detectCiliumOperatorNamespace(k)
+		if err == nil {
+			c.log("🔮 Detected Cilium operator in namespace: %q", ns)
+			c.Options.CiliumOperatorNamespace = ns
+		} else {
+			c.logWarn("Failed to detect Cilium operator")
+		}
+	} else {
+		c.log("ℹ️  Cilium operator namespace: %s", c.Options.CiliumOperatorNamespace)
+	}
+
+	if c.Options.CiliumHelmReleaseName == "" {
+		c.log("ℹ️ Using default Cilium Helm release name: %q", ciliumHelmReleaseName)
+		c.Options.CiliumHelmReleaseName = ciliumHelmReleaseName
+	} else {
+		c.log("ℹ️ Cilium Helm release name: %q", c.Options.CiliumHelmReleaseName)
+	}
+
+	if c.Options.TetragonHelmReleaseName == "" {
+		c.log("ℹ️ Using default Tetragon Helm release name: %q", tetragonHelmReleaseName)
+		c.Options.TetragonHelmReleaseName = tetragonHelmReleaseName
+	} else {
+		c.log("ℹ️ Tetragon Helm release name: %q", c.Options.TetragonHelmReleaseName)
+	}
+
+	if c.Options.CiliumSPIRENamespace == "" {
+		if ns, err := detectCiliumSPIRENamespace(k); err != nil {
+			c.logDebug("Failed to detect Cilium SPIRE installation: %v", err)
+			if c.Options.CiliumOperatorNamespace != "" {
+				c.log("ℹ️ Failed to detect Cilium SPIRE installation - using Cilium namespace as Cilium SPIRE namespace: %q", c.Options.CiliumOperatorNamespace)
+				c.Options.CiliumSPIRENamespace = c.Options.CiliumOperatorNamespace
+			}
+		} else {
+			c.log("🔮 Detected Cilium SPIRE installation in namespace: %q", ns)
+			c.Options.CiliumSPIRENamespace = ns
+		}
+	} else {
+		c.log("ℹ️  Cilium SPIRE namespace: %q", c.Options.CiliumSPIRENamespace)
+	}
+
+	// Grab the Kubernetes nodes for the target cluster.
+	c.logTask("Collecting Kubernetes nodes")
+	c.allNodes, err = c.Client.ListNodes(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect Kubernetes nodes: %w", err)
+	}
+	c.logDebug("Finished collecting Kubernetes nodes")
+
+	// Exit if there are no nodes, as there's nothing to do.
+	if len(c.allNodes.Items) == 0 {
+		return nil, fmt.Errorf("no nodes found in the current cluster")
+	}
+	// If there are many nodes and no filters are specified, issue a warning and wait for a while before proceeding so the user can cancel the process.
+	if len(c.allNodes.Items) > c.Options.LargeSysdumpThreshold && // 20
+		(c.Options.NodeList == DefaultNodeList &&
+			c.Options.LogsLimitBytes == DefaultLogsLimitBytes &&
+			c.Options.LogsSinceTime == DefaultLogsSinceTime) {
+		c.logWarn("Detected a large cluster (%d nodes, threshold is %d)", len(c.allNodes.Items), c.Options.LargeSysdumpThreshold)
+		c.logWarn("Consider using a node filter (--node-list option, default=\"\"),")
+		c.logWarn("a custom log size limit (--logs-limit-bytes option, default=1GiB)")
+		c.logWarn("and/or a custom log time range (--logs-since-time option, default=1y)")
+		c.logWarn("to decrease the size of the sysdump")
+		c.logWarn("Waiting for %s before continuing, press control+c to abort and adjust your options", c.Options.LargeSysdumpAbortTimeout)
+		t := time.NewTicker(c.Options.LargeSysdumpAbortTimeout)
+		defer t.Stop()
+		<-t.C
+	}
+
+	// Build the list of node names in which the user is interested.
+	c.NodeList = buildNodeNameList(c.allNodes, c.Options.NodeList)
+	c.logDebug("Restricting bugtool and logs collection to pods in %v", c.NodeList)
+
+	if c.Options.CiliumNamespace != "" {
+		ciliumPods, err := c.Client.ListPods(context.Background(), c.Options.CiliumNamespace, metav1.ListOptions{
+			LabelSelector: c.Options.CiliumLabelSelector,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Cilium pods: %w", err)
+		}
+		c.CiliumPods = FilterPods(ciliumPods, c.NodeList)
+		if c.Options.CollectLogsFromNotReadyAgents {
+			crashedPods := filterCrashedPods(ciliumPods, 5)
+			notReady := filterRunningNotReadyPods(ciliumPods, 5)
+			restartedPods := filterRestartedContainersPods(ciliumPods, 5)
+			allPods := slices.Concat(crashedPods, notReady, restartedPods)
+
+			for _, pod := range allPods {
+				if !slices.ContainsFunc(c.CiliumNotReadyPods, func(p *corev1.Pod) bool {
+					return p.Name == pod.Name
+				}) {
+					c.CiliumNotReadyPods = append(c.CiliumNotReadyPods, pod)
+				}
+			}
+			if len(c.CiliumNotReadyPods) > 0 {
+				c.logWarn("Collecting additional logs from %d not ready/crashing/restarted Cilium agent pods", len(c.CiliumNotReadyPods))
+			}
+		}
+
+		c.CiliumConfigMap, err = c.Client.GetConfigMap(context.Background(), c.Options.CiliumNamespace, ciliumConfigMapName, metav1.GetOptions{})
+		if err != nil {
+			if !k8sErrors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get %s ConfigMap: %w", ciliumConfigMapName, err)
+			}
+			c.log("ℹ️  %s ConfigMap not found in %s namespace", ciliumConfigMapName, c.Options.CiliumNamespace)
+		}
+		if c.CiliumConfigMap != nil {
+			c.FeatureSet.ExtractFromConfigMap(c.CiliumConfigMap)
+			c.log("🔮 Detected Cilium features: %v", c.FeatureSet)
+		}
+	}
+
+	if c.Options.CiliumOperatorNamespace != "" {
+		pods, err := c.Client.ListPods(context.Background(), c.Options.CiliumOperatorNamespace, metav1.ListOptions{
+			LabelSelector: c.Options.CiliumOperatorLabelSelector,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Cilium operator pods: %w", err)
+		}
+		c.CiliumOperatorPods = AllPods(pods)
+	}
+
+	if err := hooks.AddSysdumpTasks(c); err != nil {
+		return nil, fmt.Errorf("failed to add custom sysdump tasks: %w", err)
+	}
+
+	return c, nil
+}
+
+func (c *Collector) shouldSkipTask(t Task) bool {
+	return c.Options.Quick && !t.Quick
+}
+
+func (c *Collector) WithFileSink(filename string, fn func(io.Writer) error) error {
+	path := c.AbsoluteTempPath(filename)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fileMode)
+	if err != nil {
+		return err
+	}
+
+	return errors.Join(
+		fn(file),
+		file.Close(),
+	)
+}
+
+// WriteYAML writes a kubernetes object to a file as YAML.
+func (c *Collector) WriteYAML(filename string, o runtime.Object) error {
+	return c.WithFileSink(filename, func(w io.Writer) error {
+		return writeYAML(o, w)
+	})
 }

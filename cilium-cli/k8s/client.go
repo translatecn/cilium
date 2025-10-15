@@ -81,113 +81,9 @@ type Client struct {
 	HelmActionConfig          *action.Configuration
 }
 
-func NewClient(contextName, kubeconfig, ciliumNamespace string, impersonateAs string, impersonateGroup []string) (*Client, error) {
-	restClientGetter := genericclioptions.ConfigFlags{
-		Context:    &contextName,
-		KubeConfig: &kubeconfig,
-	}
-	rawKubeConfigLoader := restClientGetter.ToRawKubeConfigLoader()
-
-	config, err := rawKubeConfigLoader.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	if impersonateAs != "" || len(impersonateGroup) > 0 {
-		config.Impersonate = rest.ImpersonationConfig{
-			UserName: impersonateAs,
-			Groups:   impersonateGroup,
-		}
-	}
-
-	rawConfig, err := rawKubeConfigLoader.RawConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	ciliumClientset, err := ciliumClientset.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	extensionClientset, err := apiextensionsclientset.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	dynamicClientset, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	slimCoreV1Clientset, err := slim_corev1.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	slimNetworkingV1Clientset, err := slim_networkingv1.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	if contextName == "" {
-		contextName = rawConfig.CurrentContext
-	}
-
-	// Initialize Helm action configuration.
-	// Use the default Helm driver (Kubernetes secret).
-	helmDriver := ""
-	actionConfig := action.Configuration{}
-	logger := func(_ string, _ ...any) {}
-	if err := actionConfig.Init(&restClientGetter, ciliumNamespace, helmDriver, logger); err != nil {
-		return nil, err
-	}
-
-	return &Client{
-		CiliumClientset:           ciliumClientset,
-		Clientset:                 clientset,
-		ExtensionClientset:        extensionClientset,
-		SlimCoreV1Clientset:       slimCoreV1Clientset,
-		SlimNetworkingV1Clientset: slimNetworkingV1Clientset,
-		Config:                    config,
-		DynamicClientset:          dynamicClientset,
-		RawConfig:                 rawConfig,
-		RESTClientGetter:          &restClientGetter,
-		contextName:               contextName,
-		HelmActionConfig:          &actionConfig,
-	}, nil
-}
-
 // ContextName returns the name of the context the client is connected to
 func (c *Client) ContextName() (name string) {
 	return c.contextName
-}
-
-// ClusterName returns the name of the cluster the client is connected to
-func (c *Client) ClusterName() (name string) {
-	if context, ok := c.RawConfig.Contexts[c.ContextName()]; ok {
-		name = context.Cluster
-	}
-	return
-}
-
-func (c *Client) GetAPIServerHostAndPort() (string, string) {
-	if context, ok := c.RawConfig.Contexts[c.ContextName()]; ok {
-		addr := c.RawConfig.Clusters[context.Cluster].Server
-		if addr != "" {
-			url, err := url.Parse(addr)
-			if err == nil {
-				host, port, _ := net.SplitHostPort(url.Host)
-				return host, port
-			}
-		}
-	}
-	return "", ""
 }
 
 func (c *Client) CreateSecret(ctx context.Context, namespace string, secret *corev1.Secret, opts metav1.CreateOptions) (*corev1.Secret, error) {
@@ -562,39 +458,15 @@ type Kind int
 
 const (
 	KindUnknown Kind = iota
-	KindMinikube
 	KindKind
-	KindEKS
-	KindGKE
-	KindAKS
-	KindMicrok8s
-	KindRancherDesktop
-	KindK3s
-	KindOpenShift
 )
 
 func (k Kind) String() string {
 	switch k {
 	case KindUnknown:
 		return "unknown"
-	case KindMinikube:
-		return "minikube"
 	case KindKind:
 		return "kind"
-	case KindEKS:
-		return "EKS"
-	case KindGKE:
-		return "GKE"
-	case KindAKS:
-		return "AKS"
-	case KindMicrok8s:
-		return "microk8s"
-	case KindRancherDesktop:
-		return "rancher-desktop"
-	case KindK3s:
-		return "K3s"
-	case KindOpenShift:
-		return "OpenShift"
 	default:
 		return "invalid"
 	}
@@ -608,90 +480,6 @@ type Flavor struct {
 type Platform struct {
 	OS   string
 	Arch string
-}
-
-func (c *Client) AutodetectFlavor(ctx context.Context) Flavor {
-	f := Flavor{
-		ClusterName: c.ClusterName(),
-	}
-
-	if c.ClusterName() == "minikube" || c.ContextName() == "minikube" {
-		f.Kind = KindMinikube
-		return f
-	}
-
-	if strings.HasPrefix(c.ClusterName(), "microk8s-") || c.ContextName() == "microk8s" {
-		f.Kind = KindMicrok8s
-	}
-
-	if c.ClusterName() == "rancher-desktop" || c.ContextName() == "rancher-desktop" {
-		f.Kind = KindRancherDesktop
-		return f
-	}
-
-	// When creating a cluster with kind create cluster --name foo,
-	// the context and cluster name are kind-foo.
-	if strings.HasPrefix(c.ClusterName(), "kind-") || strings.HasPrefix(c.ContextName(), "kind-") {
-		f.Kind = KindKind
-		return f
-	}
-
-	if strings.HasPrefix(c.ClusterName(), "gke_") {
-		f.Kind = KindGKE
-		return f
-	}
-
-	// When creating a cluster with eksctl create cluster --name foo,
-	// the cluster name is foo.<region>.eksctl.io
-	if strings.HasSuffix(c.ClusterName(), ".eksctl.io") {
-		f.Kind = KindEKS
-		return f
-	}
-
-	if context, ok := c.RawConfig.Contexts[c.ContextName()]; ok {
-		if cluster, ok := c.RawConfig.Clusters[context.Cluster]; ok {
-			if strings.HasSuffix(cluster.Server, "eks.amazonaws.com") {
-				f.Kind = KindEKS
-				return f
-			} else if strings.HasSuffix(cluster.Server, "azmk8s.io:443") {
-				f.Kind = KindAKS
-				return f
-			}
-		}
-	}
-
-	nodeList, err := c.ListNodes(ctx, metav1.ListOptions{})
-	if err != nil {
-		return f
-	}
-	// Assume k3s if the k8s master node runs k3s
-	for _, node := range nodeList.Items {
-		isMaster := node.Labels["node-role.kubernetes.io/master"]
-		if isMaster != "true" {
-			continue
-		}
-		instanceType, ok := node.Labels[corev1.LabelInstanceTypeStable]
-		if !ok {
-			instanceType = node.Labels[corev1.LabelInstanceType]
-		}
-		if instanceType == "k3s" {
-			f.Kind = KindK3s
-			return f
-		}
-	}
-
-	apiList, err := c.GetServerGroups()
-	if err == nil {
-		apiGroups := apiList.Groups
-		for i := range apiGroups {
-			if apiGroups[i].Name == "route.openshift.io" {
-				f.Kind = KindOpenShift
-				return f
-			}
-		}
-	}
-
-	return f
 }
 
 func (c *Client) ListCiliumEndpoints(ctx context.Context, namespace string, options metav1.ListOptions) (*ciliumv2.CiliumEndpointList, error) {
@@ -708,10 +496,6 @@ func (c *Client) ListCiliumEnvoyConfigs(ctx context.Context, namespace string, o
 
 func (c *Client) GetNode(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Node, error) {
 	return c.Clientset.CoreV1().Nodes().Get(ctx, name, opts)
-}
-
-func (c *Client) ListNodes(ctx context.Context, options metav1.ListOptions) (*corev1.NodeList, error) {
-	return c.Clientset.CoreV1().Nodes().List(ctx, options)
 }
 
 func (c *Client) ListSlimNodes(ctx context.Context, options metav1.ListOptions) (*slimcorev1.NodeList, error) {
@@ -1062,14 +846,6 @@ func (c *Client) GetCiliumVersion(ctx context.Context, p *corev1.Pod) (*semver.V
 	return &podVersion, nil
 }
 
-func (c *Client) GetRunningCiliumVersion(ciliumHelmReleaseName string) (string, error) {
-	release, err := action.NewGet(c.HelmActionConfig).Run(ciliumHelmReleaseName)
-	if err != nil {
-		return "", err
-	}
-	return release.Chart.Metadata.Version, nil
-}
-
 func (c *Client) ListCiliumLocalRedirectPolicies(ctx context.Context, namespace string, opts metav1.ListOptions) (*ciliumv2.CiliumLocalRedirectPolicyList, error) {
 	return c.CiliumClientset.CiliumV2().CiliumLocalRedirectPolicies(namespace).List(ctx, opts)
 }
@@ -1289,4 +1065,148 @@ func (c *Client) GetOpenshiftClusterVersion(ctx context.Context) (*OpenshiftClus
 	}
 
 	return &cv, nil
+}
+
+// ClusterName returns the name of the cluster the client is connected to
+func (c *Client) ClusterName() (name string) {
+	if context, ok := c.RawConfig.Contexts[c.ContextName()]; ok {
+		name = context.Cluster
+	}
+	return
+}
+
+func (c *Client) ListNodes(ctx context.Context, options metav1.ListOptions) (*corev1.NodeList, error) {
+	return c.Clientset.CoreV1().Nodes().List(ctx, options)
+}
+
+func (c *Client) AutodetectFlavor(ctx context.Context) Flavor {
+	f := Flavor{
+		ClusterName: c.ClusterName(),
+	}
+
+	// When creating a cluster with kind create cluster --name foo,
+	// the context and cluster name are kind-foo.
+	if strings.HasPrefix(c.ClusterName(), "kind-") || strings.HasPrefix(c.ContextName(), "kind-") {
+		f.Kind = KindKind
+		return f
+	}
+
+	nodeList, err := c.ListNodes(ctx, metav1.ListOptions{})
+	if err != nil {
+		return f
+	}
+	// Assume k3s if the k8s master node runs k3s
+	for _, node := range nodeList.Items {
+		isMaster := node.Labels["node-role.kubernetes.io/master"]
+		if isMaster != "true" {
+			continue
+		}
+
+	}
+
+	return f
+}
+
+func (c *Client) GetAPIServerHostAndPort() (string, string) {
+	if context, ok := c.RawConfig.Contexts[c.ContextName()]; ok {
+		addr := c.RawConfig.Clusters[context.Cluster].Server
+		if addr != "" {
+			url, err := url.Parse(addr)
+			if err == nil {
+				host, port, _ := net.SplitHostPort(url.Host)
+				return host, port
+			}
+		}
+	}
+	return "", ""
+}
+
+func NewClient(contextName, kubeconfig, ciliumNamespace string, impersonateAs string, impersonateGroup []string) (*Client, error) {
+	restClientGetter := genericclioptions.ConfigFlags{
+		Context:    &contextName,
+		KubeConfig: &kubeconfig,
+	}
+	rawKubeConfigLoader := restClientGetter.ToRawKubeConfigLoader()
+
+	config, err := rawKubeConfigLoader.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if impersonateAs != "" || len(impersonateGroup) > 0 {
+		config.Impersonate = rest.ImpersonationConfig{
+			UserName: impersonateAs,
+			Groups:   impersonateGroup,
+		}
+	}
+
+	rawConfig, err := rawKubeConfigLoader.RawConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	ciliumClientset, err := ciliumClientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	extensionClientset, err := apiextensionsclientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClientset, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	slimCoreV1Clientset, err := slim_corev1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	slimNetworkingV1Clientset, err := slim_networkingv1.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	if contextName == "" {
+		contextName = rawConfig.CurrentContext
+	}
+
+	// Initialize Helm action configuration.
+	// Use the default Helm driver (Kubernetes secret).
+	helmDriver := ""
+	actionConfig := action.Configuration{}
+	logger := func(_ string, _ ...any) {}
+	if err := actionConfig.Init(&restClientGetter, ciliumNamespace, helmDriver, logger); err != nil {
+		return nil, err
+	}
+
+	return &Client{
+		CiliumClientset:           ciliumClientset,
+		Clientset:                 clientset,
+		ExtensionClientset:        extensionClientset,
+		SlimCoreV1Clientset:       slimCoreV1Clientset,
+		SlimNetworkingV1Clientset: slimNetworkingV1Clientset,
+		Config:                    config,
+		DynamicClientset:          dynamicClientset,
+		RawConfig:                 rawConfig,
+		RESTClientGetter:          &restClientGetter,
+		contextName:               contextName,
+		HelmActionConfig:          &actionConfig,
+	}, nil
+}
+
+func (c *Client) GetRunningCiliumVersion(ciliumHelmReleaseName string) (string, error) {
+	release, err := action.NewGet(c.HelmActionConfig).Run(ciliumHelmReleaseName)
+	if err != nil {
+		return "", err
+	}
+	return release.Chart.Metadata.Version, nil
 }

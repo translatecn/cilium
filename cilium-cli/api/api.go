@@ -37,20 +37,6 @@ func SetK8sClientContextValue(ctx context.Context, client *k8s.Client) context.C
 	return context.WithValue(ctx, k8sClientKey, client)
 }
 
-// GetNamespaceContextValue retrieves the namespace from a context that was
-// stored by SetNamespaceContextValue.
-func GetNamespaceContextValue(ctx context.Context) (string, bool) {
-	namespace, ok := ctx.Value(namespaceKey).(string)
-	return namespace, ok
-}
-
-// GetK8sClientContextValue retrieves the k8s.Client from a context that was
-// stored by SetK8sClientContextValue.
-func GetK8sClientContextValue(ctx context.Context) (*k8s.Client, bool) {
-	client, ok := ctx.Value(k8sClientKey).(*k8s.Client)
-	return client, ok
-}
-
 // Hooks to extend the default cilium-cli command with additional functionality.
 type Hooks interface {
 	ConnectivityTestHooks

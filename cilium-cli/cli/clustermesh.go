@@ -15,7 +15,7 @@ import (
 
 	"github.com/cilium/cilium/cilium-cli/clustermesh"
 	"github.com/cilium/cilium/cilium-cli/defaults"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 )
 
 func newCmdClusterMesh() *cobra.Command {
@@ -51,7 +51,7 @@ func newCmdClusterMeshStatus() *cobra.Command {
 			params.ImpersonateAs = impersonateAs
 			params.ImpersonateGroups = impersonateGroups
 
-			if params.Output == status.OutputJSON {
+			if params.Output == over_status.OutputJSON {
 				// Write status log messages to stderr to make sure they don't
 				// clutter JSON output.
 				params.Writer = os.Stderr
@@ -67,7 +67,7 @@ func newCmdClusterMeshStatus() *cobra.Command {
 
 	cmd.Flags().BoolVar(&params.Wait, "wait", false, "Wait until status is successful")
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 15*time.Minute, "Maximum time to wait")
-	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
+	cmd.Flags().StringVarP(&params.Output, "output", "o", over_status.OutputSummary, "Output format. One of: json, summary")
 
 	return cmd
 }
@@ -182,7 +182,7 @@ func newCmdClusterMeshDisconnectWithHelm() *cobra.Command {
 func newCmdClusterMeshPolicyDefaultClusterInspect() *cobra.Command {
 	namespace := ""
 	allNamespaces := false
-	output := status.OutputSummary
+	output := over_status.OutputSummary
 
 	cmd := &cobra.Command{
 		Use:   "inspect-policy-default-local-cluster",

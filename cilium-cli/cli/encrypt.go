@@ -12,7 +12,7 @@ import (
 
 	"github.com/cilium/cilium/cilium-cli/defaults"
 	"github.com/cilium/cilium/cilium-cli/encrypt"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 )
 
 func newCmdEncrypt() *cobra.Command {
@@ -48,7 +48,7 @@ func newCmdEncryptStatus() *cobra.Command {
 	cmd.Flags().StringVar(&params.NodeName, "node", "", "Node from which encryption status will be fetched, omit to select all nodes")
 	cmd.Flags().BoolVar(&params.PerNodeDetails, "per-node-details", false, "Encryption status will be displayed for each cluster node separately")
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
-	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
+	cmd.Flags().StringVarP(&params.Output, "output", "o", over_status.OutputSummary, "Output format. One of: json, summary")
 	return cmd
 }
 
@@ -92,7 +92,7 @@ func newCmdIPsecKeyStatus() *cobra.Command {
 		},
 	}
 	cmd.Flags().DurationVar(&params.WaitDuration, "wait-duration", 1*time.Minute, "Maximum time to wait for result, default 1 minute")
-	cmd.Flags().StringVarP(&params.Output, "output", "o", status.OutputSummary, "Output format. One of: json, summary")
+	cmd.Flags().StringVarP(&params.Output, "output", "o", over_status.OutputSummary, "Output format. One of: json, summary")
 	return cmd
 }
 

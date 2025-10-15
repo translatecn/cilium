@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/cilium/cilium-cli/defaults"
-	"github.com/cilium/cilium/cilium-cli/status"
+	"github.com/cilium/cilium/cilium-cli/over_status"
 )
 
 // IPsecKeyStatus displays IPsec key.
@@ -43,7 +43,7 @@ type ipsecKeyStatus struct {
 }
 
 func printIPsecKey(key string, format string) error {
-	if format == status.OutputJSON {
+	if format == over_status.OutputJSON {
 		js, err := json.MarshalIndent(ipsecKeyStatus{Key: key}, "", " ")
 		if err != nil {
 			return err
